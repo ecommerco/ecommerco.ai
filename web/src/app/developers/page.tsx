@@ -117,7 +117,7 @@ export default function DevelopersPage() {
                     <div className="p-6 overflow-x-auto">
                       <pre className="font-mono text-sm text-gray-300">
                         <span className="text-purple-400">curl</span> -X GET https://api.ecommerco.ai/store/products \<br/>
-                        &nbsp;&nbsp;-H <span className="text-green-400">"Authorization: Bearer &lt;YOUR_API_KEY&gt;"</span>
+                        &nbsp;&nbsp;-H <span className="text-green-400">&quot;Authorization: Bearer &lt;YOUR_API_KEY&gt;&quot;</span>
                       </pre>
                     </div>
                   </div>
