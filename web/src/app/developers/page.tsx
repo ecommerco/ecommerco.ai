@@ -143,7 +143,7 @@ export default function DevelopersPage() {
                       </div>
                       <div className="p-6 overflow-x-auto">
                         <pre className="font-mono text-xs text-gray-300 leading-relaxed">
-                          <span className="text-purple-400">import</span> {"{ ecommercoClient }"} <span className="text-purple-400">from</span> <span className="text-green-400">"@lib/config"</span>;<br/><br/>
+                          <span className="text-purple-400">import</span> {"{ ecommercoClient }"} <span className="text-purple-400">from</span> <span className="text-green-400">&quot;@lib/config&quot;</span>;<br/><br/>
                           <span className="text-blue-400">export async function</span> <span className="text-yellow-400">getProducts</span>() {"{"}<br/>
                           &nbsp;&nbsp;<span className="text-blue-400">const</span> {"{ products }"} = <span className="text-blue-400">await</span> ecommercoClient.products.<span className="text-yellow-400">list</span>();<br/>
                           &nbsp;&nbsp;<span className="text-blue-400">return</span> products;<br/>
@@ -160,14 +160,14 @@ export default function DevelopersPage() {
                       <div className="p-6 overflow-x-auto">
                         <pre className="font-mono text-xs text-gray-400 leading-relaxed">
                           {"{"}<br/>
-                          &nbsp;&nbsp;<span className="text-green-400">"products"</span>: [<br/>
+                          &nbsp;&nbsp;<span className="text-green-400">&quot;products&quot;</span>: [<br/>
                           &nbsp;&nbsp;&nbsp;&nbsp;{"{"}<br/>
-                          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="text-green-400">"id"</span>: <span className="text-yellow-400">"prod_01G..."</span>,<br/>
-                          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="text-green-400">"title"</span>: <span className="text-yellow-400">"Neural Shirt"</span>,<br/>
-                          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="text-green-400">"variants"</span>: [...]<br/>
+                          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="text-green-400">&quot;id&quot;</span>: <span className="text-yellow-400">&quot;prod_01G...&quot;</span>,<br/>
+                          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="text-green-400">&quot;title&quot;</span>: <span className="text-yellow-400">&quot;Neural Shirt&quot;</span>,<br/>
+                          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="text-green-400">&quot;variants&quot;</span>: [...]<br/>
                           &nbsp;&nbsp;&nbsp;&nbsp;{"}"}<br/>
                           &nbsp;&nbsp;],<br/>
-                          &nbsp;&nbsp;<span className="text-green-400">"count"</span>: 1<br/>
+                          &nbsp;&nbsp;<span className="text-green-400">&quot;count&quot;</span>: 1<br/>
                           {"}"}
                         </pre>
                       </div>

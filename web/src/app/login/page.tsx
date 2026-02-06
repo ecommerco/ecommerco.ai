@@ -130,7 +130,7 @@ export default function LoginPage() {
                       placeholder="+1 (555) 000-0000"
                     />
                   </div>
-                  <p className="text-xs text-gray-500 ml-1">We'll send you a code to verify your phone number.</p>
+                  <p className="text-xs text-gray-500 ml-1">We&apos;ll send you a code to verify your phone number.</p>
                 </div>
               )}
 
@@ -172,7 +172,7 @@ export default function LoginPage() {
             </div>
 
             <p className="text-center text-sm text-gray-500 mt-8">
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
               <Link href="/signup" className="text-primary hover:underline font-medium">
                 Create Store
               </Link>

@@ -146,7 +146,7 @@ export default function SignupPage() {
                       placeholder="+1 (555) 000-0000"
                     />
                   </div>
-                  <p className="text-xs text-gray-500 ml-1">We'll send you a code to verify your phone number.</p>
+                  <p className="text-xs text-gray-500 ml-1">We&apos;ll send you a code to verify your phone number.</p>
                 </div>
               )}
 
