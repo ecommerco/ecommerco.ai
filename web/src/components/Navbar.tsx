@@ -23,7 +23,7 @@ export function Navbar() {
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
+        <nav className="hidden lg:flex items-center gap-8 text-sm font-medium text-gray-400">
           <Link href="/features" className="hover:text-white transition-colors">Features</Link>
           <Link href="/builder" className="hover:text-white transition-colors text-primary font-bold">Builder</Link>
           <Link href="/developers" className="hover:text-white transition-colors">Developers</Link>
@@ -32,7 +32,7 @@ export function Navbar() {
           <Link href="/about" className="hover:text-white transition-colors">About</Link>
         </nav>
 
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden lg:flex items-center gap-4">
           <Link href="/login" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">
             Log in
           </Link>
@@ -46,7 +46,7 @@ export function Navbar() {
 
         {/* Mobile Toggle */}
         <button 
-          className="md:hidden z-50 relative text-white"
+          className="lg:hidden z-50 relative text-white"
           onClick={() => setIsOpen(!isOpen)}
         >
           {isOpen ? <X /> : <Menu />}
@@ -59,7 +59,7 @@ export function Navbar() {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="absolute inset-x-0 top-0 bg-black/95 border-b border-white/10 p-6 pt-24 flex flex-col gap-6 md:hidden h-screen"
+              className="absolute inset-x-0 top-0 bg-black/95 border-b border-white/10 p-6 pt-24 flex flex-col gap-6 lg:hidden h-screen overflow-y-auto"
             >
               <nav className="flex flex-col gap-6 text-lg font-medium text-gray-400">
                 <Link href="/features" className="hover:text-white transition-colors" onClick={() => setIsOpen(false)}>Features</Link>
