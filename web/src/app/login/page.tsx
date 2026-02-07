@@ -104,8 +104,14 @@ export default function LoginPage() {
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-sm"
+            className="relative bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-sm group"
           >
+            {/* Walking Border Effect */}
+            <div className="walking-border-container">
+              <div className="walking-border-gradient" />
+            </div>
+            <div className="walking-border-glow" />
+
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold tracking-tighter mb-2">Welcome Back</h1>
               <p className="text-gray-400">Enter your credentials to access your store.</p>

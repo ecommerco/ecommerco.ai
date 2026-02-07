@@ -28,6 +28,67 @@
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
+@property --angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes spin-border {
+  from {
+    --angle: 0deg;
+  }
+  to {
+    --angle: 360deg;
+  }
+}
+
+.walking-border-container {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px; /* This defines the border width */
+  -webkit-mask: 
+     linear-gradient(#fff 0 0) content-box, 
+     linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  overflow: hidden;
+}
+
+.walking-border-gradient {
+  position: absolute;
+  inset: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    from var(--angle),
+    transparent 70%,
+    var(--primary)
+  );
+  animation: spin-border 3s linear infinite;
+}
+
+/* Glow effect */
+.walking-border-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 20px 2px var(--primary);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.group:hover .walking-border-container,
+.group:hover .walking-border-glow {
+  opacity: 1;
+}
+
 /* Force dark theme everywhere */
 body {
   background: var(--background);

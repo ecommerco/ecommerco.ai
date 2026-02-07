@@ -49,8 +49,8 @@ function Counter({ from, to, prefix, suffix }: { from: number; to: number; prefi
 export function StatsSection() {
   return (
     <section className="py-24 border-y border-white/10 bg-black/50 backdrop-blur-sm">
-      <div className="container px-4 md:px-6 mx-auto">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
+      <div className="container px-8 md:px-12 mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 text-center">
           {stats.map((stat, i) => (
             <div key={i} className="flex flex-col items-center gap-2">
               <Counter from={0} to={stat.value} prefix={stat.prefix} suffix={stat.suffix} />

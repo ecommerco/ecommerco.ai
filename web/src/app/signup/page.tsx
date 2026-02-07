@@ -121,8 +121,14 @@ export default function SignupPage() {
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-sm"
+            className="relative bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-sm group"
           >
+            {/* Walking Border Effect */}
+            <div className="walking-border-container">
+              <div className="walking-border-gradient" />
+            </div>
+            <div className="walking-border-glow" />
+            
             <div className="text-center mb-8">
               <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary mb-4 border border-primary/20">
                 <Store className="w-6 h-6" />
