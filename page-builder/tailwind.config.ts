@@ -16,15 +16,11 @@ const config: Config = {
       colors: {
         black: "#000",
         tomato: {
-          "100": "#f7c11e",
-          "200": "rgba(247, 193, 30, 0.3)",
-        },
-        primary: {
-          DEFAULT: "#f7c11e",
-          foreground: "#000000",
+          "100": "#f1614a",
+          "200": "rgba(241, 97, 74, 0.3)",
         },
         white: "#fff",
-        goldenrod: "#f7c11e",
+        goldenrod: "#ffbb37",
       },
       spacing: {},
       fontFamily: {

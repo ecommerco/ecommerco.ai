@@ -6,6 +6,7 @@ import { Integrations } from "@/components/Integrations";
 import { StatsSection } from "@/components/StatsSection";
 import { CommunitySection } from "@/components/CommunitySection";
 import { CallToAction } from "@/components/CallToAction";
+import { TheSignal } from "@/components/TheSignal";
 
 export default function Home() {
   return (
@@ -13,6 +14,7 @@ export default function Home() {
       <Navbar />
       <Hero />
       <StatsSection />
+      <TheSignal />
       <Features />
       <GlobalScale />
       <Integrations />

@@ -29,6 +29,7 @@ export function Navbar() {
           <Link href="/developers" className="hover:text-white transition-colors">Developers</Link>
           <Link href="/how-it-works" className="hover:text-white transition-colors">How it Works</Link>
           <Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link>
+          <Link href="/about" className="hover:text-white transition-colors">About</Link>
         </nav>
 
         <div className="hidden md:flex items-center gap-4">
@@ -66,6 +67,7 @@ export function Navbar() {
                 <Link href="/developers" className="hover:text-white transition-colors" onClick={() => setIsOpen(false)}>Developers</Link>
                 <Link href="/how-it-works" className="hover:text-white transition-colors" onClick={() => setIsOpen(false)}>How it Works</Link>
                 <Link href="/pricing" className="hover:text-white transition-colors" onClick={() => setIsOpen(false)}>Pricing</Link>
+                <Link href="/about" className="hover:text-white transition-colors" onClick={() => setIsOpen(false)}>About</Link>
               </nav>
               <div className="flex flex-col gap-4 mt-auto pb-10">
                 <Link href="/login" className="text-center py-3 text-white border border-white/10 rounded-lg hover:bg-white/5 transition-colors" onClick={() => setIsOpen(false)}>

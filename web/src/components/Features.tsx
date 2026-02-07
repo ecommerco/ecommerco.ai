@@ -14,38 +14,38 @@ import { GlowingCard } from "./GlowingCard";
 
 const features = [
   {
-    title: "Generative Store Architect",
-    description: "Don't build. Describe. Our AI constructs pixel-perfect, conversion-optimized storefronts in seconds, not months.",
+    title: "Generative Architect",
+    description: "Don’t build. Whisper. The system assembles your storefront and tests reactions before they become choices.",
     icon: <Bot className="w-6 h-6" />,
     colSpan: "md:col-span-2",
   },
   {
     title: "Neural Analytics",
-    description: "Predict trends before they happen. Real-time forecasting powered by global commerce data.",
+    description: "Forecasts that feel like warnings. It reads the pattern and rewrites the future in real time.",
     icon: <BarChart3 className="w-6 h-6" />,
     colSpan: "md:col-span-1",
   },
   {
     title: "Global Intelligence",
-    description: "Sell everywhere instantly. AI handles tax, translation, and logistics for 150+ countries automatically.",
+    description: "Sell everywhere without opening doors. Tax, translation, logistics—handled through one quiet brain.",
     icon: <Globe2 className="w-6 h-6" />,
     colSpan: "md:col-span-1",
   },
   {
     title: "Predictive Checkout",
-    description: "Reduce friction dynamically. The system adapts payment methods and flows per user to maximize conversion.",
+    description: "A different flow for every visitor. Not one experience—thousands, tuned to the pulse.",
     icon: <Zap className="w-6 h-6" />,
     colSpan: "md:col-span-2",
   },
   {
     title: "Autonomous Security",
-    description: "Threat detection that evolves. Block fraud and attacks with self-healing infrastructure.",
+    description: "Detects threats before they exist. Heals itself silently when someone tries to break in.",
     icon: <ShieldCheck className="w-6 h-6" />,
     colSpan: "md:col-span-1",
   },
   {
     title: "Unified OS",
-    description: "One command center for online, POS, and B2B. Sync inventory and customers across all dimensions.",
+    description: "One command center for Online, POS, and B2B. Inventory and customers move like a single organism.",
     icon: <Layers className="w-6 h-6" />,
     colSpan: "md:col-span-2", 
   },
@@ -96,14 +96,13 @@ export function Features() {
           className="mb-20 text-center max-w-3xl mx-auto"
         >
           <h2 className="text-3xl md:text-6xl font-semibold tracking-tight text-white mb-6">
-            More Than a Platform. <br />
+            Not a platform. <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-yellow-200">
-              A Commerce Superintelligence.
+              A commerce superintelligence.
             </span>
           </h2>
           <p className="text-gray-400 text-lg md:text-xl font-light">
-            Traditional platforms give you tools. Ecommerco gives you outcomes. 
-            Automate the heavy lifting and focus on your vision.
+            Traditional platforms give you tools. Ecommerco gives you outcomes—and the market forgets it was ever a choice.
           </p>
         </motion.div>
 

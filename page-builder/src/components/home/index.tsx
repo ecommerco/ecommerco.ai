@@ -17,7 +17,7 @@ const HomeCom: NextPage = () => {
                 </div>
                 <div className="absolute top-[5.85rem] left-[0rem] w-[78.19rem] h-[10.88rem] text-[9.57rem] font-inter">
                     <div className="absolute top-[0rem] left-[0rem] leading-[10.87rem] font-semibold">
-                        Ecommerco.ai
+                        M4yours Editor
                     </div>
                     <Link href="/editor">
                     <img

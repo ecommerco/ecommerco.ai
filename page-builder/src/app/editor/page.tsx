@@ -88,7 +88,7 @@ const blocks = [
 ];
 const gjsOptions: EditorConfig = {
   height: '100vh',
-  storageManager: false,
+  storageManager: { type: 'ecommerco', autosave: false, autoload: true },
   undoManager: { trackSelection: false },
   selectorManager: { componentFirst: true },
   projectData: {
@@ -113,9 +113,31 @@ const gjsOptions: EditorConfig = {
 };
 
 export default function Home() {
+  const slug = React.useMemo(() => {
+    if (typeof window === 'undefined') return 'home';
+    return new URLSearchParams(window.location.search).get('slug') || 'home';
+  }, []);
+
   const onEditor = (editor: Editor) => {
-    console.log('Editor loaded');
     (window as any).editor = editor;
+
+    editor.Storage.add('ecommerco', {
+      async load() {
+        const res = await fetch(`/api/projects/${encodeURIComponent(slug)}`, { cache: 'no-store' });
+        if (!res.ok) return {};
+        return await res.json();
+      },
+      async store(data) {
+        await fetch(`/api/projects/${encodeURIComponent(slug)}`, {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        return data;
+      },
+    });
+
+    editor.load();
   };
 
   return (

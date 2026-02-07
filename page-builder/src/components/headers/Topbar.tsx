@@ -12,9 +12,9 @@ export default function Topbar({
     className,
 }: React.HTMLAttributes<HTMLDivElement>) {
     return (
-        <div className={cx('gjs-top-sidebar flex items-center pl-2')} style={{ backgroundColor: '#000', borderBottom: '1px solid #333'}}>
+        <div className={cx('gjs-top-sidebar flex items-center pl-2')} style={{ backgroundColor: '#2B2B2B', borderBottom: '1px solid #999'}}>
             <Link href={'/'}>
-            <Typography sx={{ color: '#fff' , marginRight: '15px', fontWeight: 'bold'}}>Ecommerco.ai</Typography>
+            <Typography sx={{ color: '#fff' , marginRight: '15px'}}>M4yours Editor</Typography>
             </Link>
             <DevicesProvider>
                 {({ selected, select, devices }) => (
@@ -32,7 +32,7 @@ export default function Topbar({
             <WithEditor>
                 <TopbarButtons className="ml-auto px-2" />
             </WithEditor>
-            <Button sx={{ backgroundColor: '#f7c11e !important;', color: '#000 !important', height: "48px", borderRadius: 'unset', padding: "20px 40px", fontWeight: 'bold' }}>Publish</Button>
+            <Button sx={{ backgroundColor: '#F1614A !important;', height: "48px", borderRadius: 'unset', padding: "20px 40px" }}>Publish</Button>
         </div>
     );
 }

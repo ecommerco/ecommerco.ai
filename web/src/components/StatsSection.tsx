@@ -4,10 +4,10 @@ import { motion, useInView } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 
 const stats = [
-  { label: "Merchants", value: 4000000, prefix: "", suffix: "+" },
-  { label: "GMV Processed", value: 650, prefix: "$", suffix: "B+" },
-  { label: "Countries", value: 175, prefix: "", suffix: "" },
-  { label: "Uptime", value: 99.99, prefix: "", suffix: "%" },
+  { label: "Active Nodes", value: 4000000, prefix: "", suffix: "+" },
+  { label: "Signals Processed", value: 650, prefix: "$", suffix: "B+" },
+  { label: "Observed Regions", value: 175, prefix: "", suffix: "" },
+  { label: "Continuity", value: 99.99, prefix: "", suffix: "%" },
 ];
 
 function Counter({ from, to, prefix, suffix }: { from: number; to: number; prefix: string; suffix: string }) {
@@ -69,7 +69,7 @@ export function StatsSection() {
           className="mt-16 text-center"
         >
           <p className="text-gray-400 text-sm">
-            * Data represents aggregated performance across the global Ecommerco network.
+            * Metrics are aggregated across the Ecommerco network. What isn’t measured… disappears.
           </p>
         </motion.div>
       </div>
