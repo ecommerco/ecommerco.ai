@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateRegistrationOptions, verifyRegistrationResponse } from '@simplewebauthn/server';
 import { prisma } from '@/lib/prisma';
 import { isoUint8Array } from '@simplewebauthn/server/helpers';
+import type { AuthenticatorTransport } from '@simplewebauthn/server';
 import { put } from '@vercel/blob';
 
 // Human-readable title for your website
@@ -109,7 +110,8 @@ export async function POST(req: NextRequest) {
     const { verified, registrationInfo } = verification;
 
     if (verified && registrationInfo) {
-      const { credentialPublicKey, credentialID, counter, credentialDeviceType, credentialBackedUp } = registrationInfo;
+      const { credentialDeviceType, credentialBackedUp, credential } = registrationInfo;
+      const { id: credentialID, publicKey: credentialPublicKey, counter } = credential;
 
       await prisma.authenticator.create({
         data: {

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
 import { prisma } from '@/lib/prisma';
+import { Authenticator } from '@prisma/client';
 import { isoUint8Array } from '@simplewebauthn/server/helpers';
+import type { AuthenticatorTransport } from '@simplewebauthn/server';
 
 const rpID = 'localhost';
 const origin = `http://${rpID}:3000`;
@@ -23,7 +25,7 @@ export async function POST(req: NextRequest) {
 
     const options = await generateAuthenticationOptions({
       rpID,
-      allowCredentials: user.authenticators.map((authenticator) => ({
+      allowCredentials: user.authenticators.map((authenticator: Authenticator) => ({
         id: authenticator.credentialID,
         type: 'public-key',
         transports: authenticator.transports
@@ -67,9 +69,9 @@ export async function POST(req: NextRequest) {
         expectedChallenge: user.currentChallenge,
         expectedOrigin: origin,
         expectedRPID: rpID,
-        authenticator: {
-          credentialID: authenticator.credentialID,
-          credentialPublicKey: new Uint8Array(Buffer.from(authenticator.credentialPublicKey, 'base64')),
+        credential: {
+          id: authenticator.credentialID,
+          publicKey: new Uint8Array(Buffer.from(authenticator.credentialPublicKey, 'base64')),
           counter: Number(authenticator.counter),
           transports: authenticator.transports
             ? (JSON.parse(authenticator.transports as string) as AuthenticatorTransport[])
