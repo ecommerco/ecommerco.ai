@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateRegistrationOptions, verifyRegistrationResponse } from '@simplewebauthn/server';
 import { prisma } from '@/lib/prisma';
 import { isoUint8Array } from '@simplewebauthn/server/helpers';
-import { writeFile } from 'fs/promises';
-import { join } from 'path';
+import { put } from '@vercel/blob';
 
 // Human-readable title for your website
 const rpName = 'Ecommerco.ai';
@@ -128,24 +127,19 @@ export async function POST(req: NextRequest) {
         const file = formData.get('file') as File | null;
         if (file && file.size > 0) {
           try {
-            const bytes = await file.arrayBuffer();
-            const buffer = Buffer.from(bytes);
+            // Upload to Vercel Blob
+            const blob = await put(file.name, file, {
+              access: 'public',
+            });
 
-            // Create unique filename
-            const filename = `${Date.now()}-${file.name.replace(/\s/g, '_')}`;
-            const uploadDir = join(process.cwd(), 'public', 'uploads');
-            const filepath = join(uploadDir, filename);
-
-            await writeFile(filepath, buffer);
-
-            // Update user with document path
+            // Update user with document path (URL)
             await prisma.user.update({
               where: { id: user.id },
-              data: { documentPath: `/uploads/${filename}` },
+              data: { documentPath: blob.url },
             });
           } catch (error) {
             console.error('File upload failed:', error);
-            // We don't fail the whole request if file upload fails, but maybe we should log it
+            // We don't fail the whole request if file upload fails
           }
         }
       }
