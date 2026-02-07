@@ -3,8 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Lock, Mail, User, Store, Eye, EyeOff, Smartphone, Apple, Github } from "lucide-react";
+import { ArrowRight, Lock, Mail, User, Store, Eye, EyeOff, Smartphone, Apple, Github, Fingerprint, FileText } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
+import { startRegistration } from "@simplewebauthn/browser";
 
 // Simple Google Icon Component
 const GoogleIcon = () => (
@@ -28,13 +29,84 @@ const AppleIcon = () => (
 export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [status, setStatus] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate auth
-    setTimeout(() => setIsLoading(false), 2000);
+    setStatus("Generating options...");
+
+    try {
+      // 1. Get registration options
+      const optionsResp = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'generate-options',
+          email,
+          name,
+        }),
+      });
+
+      const options = await optionsResp.json();
+
+      if (options.error) {
+        throw new Error(options.error);
+      }
+
+      setStatus("Waiting for biometric verification...");
+      
+      // 2. Pass options to browser's WebAuthn API
+      const attestationResponse = await startRegistration(options);
+
+      setStatus("Verifying...");
+
+      // 3. Verify registration
+      let body: any;
+      let headers: HeadersInit = {};
+
+      if (file) {
+        const formData = new FormData();
+        formData.append('action', 'verify');
+        formData.append('email', email);
+        formData.append('attestationResponse', JSON.stringify(attestationResponse));
+        formData.append('file', file);
+        body = formData;
+      } else {
+        body = JSON.stringify({
+          action: 'verify',
+          email,
+          attestationResponse,
+        });
+        headers = { 'Content-Type': 'application/json' };
+      }
+
+      const verifyResp = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: headers,
+        body: body,
+      });
+
+      const verification = await verifyResp.json();
+
+      if (verification.verified) {
+        setStatus("Success! You can now log in.");
+        // Redirect or update state
+      } else {
+        setStatus("Verification failed.");
+      }
+
+    } catch (error: any) {
+      console.error(error);
+      setStatus(`Error: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -59,147 +131,79 @@ export default function SignupPage() {
               <p className="text-gray-400">Launch your commerce empire in seconds.</p>
             </div>
 
-            {/* Auth Method Tabs */}
-            <div className="flex bg-black/50 p-1 rounded-lg mb-8 border border-white/10">
-              <button
-                onClick={() => setAuthMethod('email')}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-all ${
-                  authMethod === 'email' 
-                    ? 'bg-primary text-black shadow-lg' 
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                <Mail className="w-4 h-4" />
-                Email
-              </button>
-              <button
-                onClick={() => setAuthMethod('phone')}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-all ${
-                  authMethod === 'phone' 
-                    ? 'bg-primary text-black shadow-lg' 
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                <Smartphone className="w-4 h-4" />
-                Phone
-              </button>
-            </div>
+            <form onSubmit={handleRegister} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-300 ml-1">Full Name</label>
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <input 
+                    type="text" 
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full h-12 bg-black/50 border border-white/10 rounded-lg px-10 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 transition-colors"
+                    placeholder="John Doe"
+                  />
+                </div>
+              </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {authMethod === 'email' ? (
-                <>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-300 ml-1">Full Name</label>
-                    <div className="relative">
-                      <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                      <input 
-                        type="text" 
-                        required
-                        className="w-full h-12 bg-black/50 border border-white/10 rounded-lg px-10 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 transition-colors"
-                        placeholder="John Doe"
-                      />
-                    </div>
-                  </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-300 ml-1">Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <input 
+                    type="email" 
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full h-12 bg-black/50 border border-white/10 rounded-lg px-10 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 transition-colors"
+                    placeholder="name@example.com"
+                  />
+                </div>
+              </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-300 ml-1">Email</label>
-                    <div className="relative">
-                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                      <input 
-                        type="email" 
-                        required
-                        className="w-full h-12 bg-black/50 border border-white/10 rounded-lg px-10 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 transition-colors"
-                        placeholder="name@example.com"
-                      />
-                    </div>
-                  </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-300 ml-1">Upload Document</label>
+                <div className="relative">
+                  <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <input 
+                    type="file" 
+                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                    className="w-full h-12 bg-black/50 border border-white/10 rounded-lg px-10 pt-2.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 transition-colors file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-black hover:file:bg-yellow-400"
+                  />
+                </div>
+              </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-300 ml-1">Password</label>
-                    <div className="relative">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                      <input 
-                        type={showPassword ? "text" : "password"}
-                        required
-                        className="w-full h-12 bg-black/50 border border-white/10 rounded-lg px-10 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 transition-colors"
-                        placeholder="Create a strong password"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300 ml-1">Phone Number</label>
-                  <div className="relative">
-                    <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                    <input 
-                      type="tel" 
-                      required
-                      className="w-full h-12 bg-black/50 border border-white/10 rounded-lg px-10 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 transition-colors"
-                      placeholder="+1 (555) 000-0000"
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 ml-1">We&apos;ll send you a code to verify your phone number.</p>
+              {status && (
+                <div className="text-center text-sm text-yellow-400">
+                  {status}
                 </div>
               )}
 
-              <div className="flex items-start gap-3 mt-2">
-                <input type="checkbox" className="mt-1 rounded border-gray-600 bg-transparent text-primary focus:ring-primary" required />
-                <span className="text-xs text-gray-500">
-                  I agree to the <Link href="#" className="text-gray-300 hover:text-primary">Terms of Service</Link> and <Link href="#" className="text-gray-300 hover:text-primary">Privacy Policy</Link>.
-                </span>
-              </div>
-
               <button 
-                type="submit"
+                type="submit" 
                 disabled={isLoading}
-                className="w-full h-12 bg-primary text-black font-bold rounded-lg hover:bg-yellow-400 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 mt-6"
+                className="w-full h-12 bg-primary text-black font-bold rounded-lg hover:bg-yellow-400 transition-all flex items-center justify-center gap-2 group"
               >
                 {isLoading ? (
-                  <span className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
                 ) : (
                   <>
-                    {authMethod === 'email' ? 'Initialize Store' : 'Send Verification Code'} 
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    <Fingerprint className="w-5 h-5" />
+                    Register with FaceID / TouchID
                   </>
                 )}
               </button>
             </form>
 
-            <div className="relative my-8">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-white/10"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-black text-gray-500">Or continue with</span>
-              </div>
+            <div className="mt-8 pt-8 border-t border-white/10 text-center">
+              <p className="text-gray-500 text-sm">
+                Already have a store?{" "}
+                <Link href="/login" className="text-primary hover:text-yellow-400 transition-colors font-medium">
+                  Log in
+                </Link>
+              </p>
             </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              <button className="flex items-center justify-center h-12 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:border-white/20 transition-all">
-                <GoogleIcon />
-              </button>
-              <button className="flex items-center justify-center h-12 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:border-white/20 transition-all text-white">
-                <AppleIcon />
-              </button>
-              <button className="flex items-center justify-center h-12 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:border-white/20 transition-all text-white">
-                <Github className="w-5 h-5" />
-              </button>
-            </div>
-
-            <p className="text-center text-sm text-gray-500 mt-8">
-              Already have an account?{" "}
-              <Link href="/login" className="text-primary hover:underline font-medium">
-                Sign In
-              </Link>
-            </p>
           </motion.div>
         </div>
       </main>
