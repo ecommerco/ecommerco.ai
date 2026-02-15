@@ -12,8 +12,9 @@ const bodySchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  context: { params: { storeId: string; productId: string } }
+  context: { params: Promise<{ storeId: string; productId: string }> }
 ) {
+  const { storeId, productId } = await context.params;
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return new NextResponse("Unauthorized", { status: 401 });
@@ -24,11 +25,10 @@ export async function PATCH(
     return NextResponse.json(parsed.error.format(), { status: 400 });
   }
   try {
-    const client = await getStoreClient(context.params.storeId, session.user.id);
-    const response = await client.put(`products/${context.params.productId}`, parsed.data);
+    const client = await getStoreClient(storeId, session.user.id);
+    const response = await client.put(`products/${productId}`, parsed.data);
     return NextResponse.json(response.data);
   } catch (error) {
     return new NextResponse("Failed to update product", { status: 502 });
   }
 }
-

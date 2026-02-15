@@ -12,8 +12,9 @@ const listSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  context: { params: { storeId: string } }
+  context: { params: Promise<{ storeId: string }> }
 ) {
+  const { storeId } = await context.params;
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return new NextResponse("Unauthorized", { status: 401 });
@@ -26,7 +27,7 @@ export async function GET(
   }
   const { page, status, search } = parsed.data;
   try {
-    const client = await getStoreClient(context.params.storeId, session.user.id);
+    const client = await getStoreClient(storeId, session.user.id);
     const response = await client.get("orders", {
       params: {
         per_page: 20,
@@ -47,4 +48,3 @@ export async function GET(
     return new NextResponse("Failed to load orders", { status: 502 });
   }
 }
-

@@ -1,18 +1,19 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { getStoreClient } from "@/lib/store-client";
 
 export async function GET(
-  request: Request,
-  context: { params: { storeId: string } }
+  request: NextRequest,
+  context: { params: Promise<{ storeId: string }> }
 ) {
+  const { storeId } = await context.params;
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
   try {
-    const client = await getStoreClient(context.params.storeId, session.user.id);
+    const client = await getStoreClient(storeId, session.user.id);
     const response = await client.get("reports/sales", {
       params: {
         period: "month"
@@ -28,4 +29,3 @@ export async function GET(
     return new NextResponse("Failed to load orders analytics", { status: 502 });
   }
 }
-
