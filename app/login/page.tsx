@@ -1,12 +1,12 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
@@ -39,58 +39,97 @@ export default function LoginPage() {
   const registered = searchParams.get("registered") === "1";
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="w-full max-w-sm border border-border bg-accent p-6">
-        <h1 className="mb-2 text-lg font-semibold text-foreground">
-          Salsabel Dashboard
-        </h1>
-        {registered && (
-          <p className="mb-2 text-xs text-green-400">
-            تم إنشاء الحساب بنجاح، قم بتسجيل الدخول الآن.
-          </p>
-        )}
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div className="space-y-1 text-xs">
-            <label htmlFor="email">Email</label>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+    <div className="flex min-h-screen bg-[#02030a] text-foreground">
+      <div className="hidden border-r border-border bg-[#050509] px-10 py-10 md:flex md:flex-1 md:flex-col md:justify-between">
+        <div className="space-y-6">
+          <div className="h-1 w-16 bg-[#FACC15]" />
+          <div className="space-y-2">
+            <p className="text-[11px] uppercase tracking-[0.25em] text-muted">
+              Salsabel Ops Console
+            </p>
+            <h1 className="text-2xl font-semibold">
+              Control your WooCommerce fleet from one sharp dashboard.
+            </h1>
           </div>
-          <div className="space-y-1 text-xs">
-            <label htmlFor="password">Password</label>
-            <Input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+        </div>
+        <div className="space-y-1 text-[11px] text-muted">
+          <p>Live sync with WooCommerce orders, products, and customers.</p>
+          <p className="text-[#FACC15]">Industrial, fast, no noise.</p>
+        </div>
+      </div>
+      <div className="flex flex-1 items-center justify-center px-4 py-10">
+        <div className="w-full max-w-sm border border-border bg-[#050509] px-8 py-10 shadow-[0_0_0_1px_rgba(15,23,42,0.9)]">
+          <div className="mb-6 space-y-2">
+            <p className="text-[11px] uppercase tracking-[0.25em] text-muted">
+              Sign in
+            </p>
+            <h2 className="text-xl font-semibold text-foreground">
+              Salsabel Dashboard
+            </h2>
           </div>
-          {error && (
-            <p className="text-xs text-red-400">
-              {error}
+          {registered && (
+            <p className="mb-4 text-[11px] text-green-400">
+              تم إنشاء الحساب بنجاح، قم بتسجيل الدخول الآن.
             </p>
           )}
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={submitting || !email || !password}
-          >
-            {submitting ? "Signing in..." : "Sign in"}
-          </Button>
-          <button
-            type="button"
-            className="mt-2 w-full text-center text-[11px] text-muted underline"
-            onClick={() => router.push("/register")}
-          >
-            إنشاء حساب جديد
-          </button>
-        </form>
+          <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+            <div className="space-y-1">
+              <label htmlFor="email" className="text-[11px] uppercase tracking-wide">
+                Email
+              </label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <label
+                htmlFor="password"
+                className="text-[11px] uppercase tracking-wide"
+              >
+                Password
+              </label>
+              <Input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            {error && (
+              <p className="text-[11px] text-red-400">
+                {error}
+              </p>
+            )}
+            <Button
+              type="submit"
+              className="w-full border-none bg-[#FACC15] text-[13px] font-semibold text-black hover:bg-[#e0b800]"
+              disabled={submitting || !email || !password}
+            >
+              {submitting ? "Signing in..." : "Sign in"}
+            </Button>
+            <button
+              type="button"
+              className="w-full text-center text-[11px] text-muted underline underline-offset-4"
+              onClick={() => router.push("/register")}
+            >
+              إنشاء حساب جديد
+            </button>
+          </form>
+        </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginContent />
+    </Suspense>
   );
 }
