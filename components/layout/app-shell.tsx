@@ -34,9 +34,9 @@ export function AppShell(props: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
-      <aside className="flex w-60 flex-col border-r border-border bg-black/60">
-        <div className="border-b border-border px-4 py-3 text-xs font-semibold uppercase tracking-wide">
-          Salsabel
+      <aside className="flex w-60 flex-col border-r border-border bg-black/70">
+        <div className="border-b border-border px-4 py-3 text-xs font-semibold uppercase tracking-[0.25em]">
+          ecommerco.ai
         </div>
         <nav className="flex-1 px-2 py-3 text-xs">
           <ul className="space-y-1">
@@ -102,4 +102,3 @@ export function AppShell(props: { children: ReactNode }) {
     </div>
   );
 }
-

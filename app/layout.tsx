@@ -4,10 +4,11 @@ import "./globals.css";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { StoreProvider } from "@/components/providers/store-provider";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
-  title: "Salsabel Dashboard",
-  description: "Headless WooCommerce admin dashboard"
+  title: "ecommerco.ai",
+  description: "Multi-store WooCommerce control center"
 };
 
 export default function RootLayout(props: { children: ReactNode }) {
@@ -19,6 +20,7 @@ export default function RootLayout(props: { children: ReactNode }) {
             <StoreProvider>{props.children}</StoreProvider>
           </QueryProvider>
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );
