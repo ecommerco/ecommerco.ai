@@ -220,7 +220,6 @@ export default function LoginPage() {
                   <div id="recaptcha-container"></div>
                   <p className="text-xs text-gray-500 ml-1">We&apos;ll send you a code to verify your phone number.</p>
                 </div>
-                </div>
               )}
 
               <button 
