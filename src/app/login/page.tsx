@@ -6,14 +6,6 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowRight, Mail, Github, Smartphone, Apple, User, Mic } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
-import { auth } from "@/lib/firebase";
-import { 
-  signInWithPopup, 
-  GoogleAuthProvider, 
-  signInWithPhoneNumber,
-  RecaptchaVerifier,
-  GithubAuthProvider
-} from "firebase/auth";
 
 // Simple Google Icon Component
 const GoogleIcon = () => (
@@ -88,7 +80,11 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/otp', {
+      const apiUrl = typeof window !== 'undefined' 
+        ? `${window.location.origin}/api/auth/otp`
+        : '/api/auth/otp';
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -137,7 +133,11 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/otp', {
+      const apiUrl = typeof window !== 'undefined' 
+        ? `${window.location.origin}/api/auth/otp`
+        : '/api/auth/otp';
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -178,39 +178,11 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
-    if (!auth) {
-      setError("Authentication is not available. Please configure Firebase.");
-      return;
-    }
-    setError("");
-    setIsLoading(true);
-
-    try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      router.push("/dashboard");
-    } catch (error: any) {
-      setError(error.message || "Failed to sign in with Google.");
-      setIsLoading(false);
-    }
+    setError("Google login will be available soon. Please use Face, Voice, Email, or Phone authentication.");
   };
 
   const handleGithubLogin = async () => {
-    if (!auth) {
-      setError("Authentication is not available. Please configure Firebase.");
-      return;
-    }
-    setError("");
-    setIsLoading(true);
-
-    try {
-      const provider = new GithubAuthProvider();
-      await signInWithPopup(auth, provider);
-      router.push("/dashboard");
-    } catch (error: any) {
-      setError(error.message || "Failed to sign in with GitHub.");
-      setIsLoading(false);
-    }
+    setError("GitHub login will be available soon. Please use Face, Voice, Email, or Phone authentication.");
   };
 
   const handlePhoneLogin = async (e: React.FormEvent) => {
@@ -234,7 +206,11 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/otp', {
+      const apiUrl = typeof window !== 'undefined' 
+        ? `${window.location.origin}/api/auth/otp`
+        : '/api/auth/otp';
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -316,7 +292,11 @@ export default function LoginPage() {
       }
 
       // Send to backend API for face recognition
-      const response = await fetch('/api/auth/face', {
+      const apiUrl = typeof window !== 'undefined' 
+        ? `${window.location.origin}/api/auth/face`
+        : '/api/auth/face';
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -386,7 +366,11 @@ export default function LoginPage() {
             setIsRecording(false);
 
             // Send transcript to backend for voice verification
-            const response = await fetch('/api/auth/voice', {
+            const apiUrl = typeof window !== 'undefined' 
+              ? `${window.location.origin}/api/auth/voice`
+              : '/api/auth/voice';
+            
+            const response = await fetch(apiUrl, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -478,7 +462,11 @@ export default function LoginPage() {
                 const audioBase64 = (reader.result as string).split(',')[1];
 
                 // Send to backend API for voice recognition
-                const response = await fetch('/api/auth/voice', {
+                const apiUrl = typeof window !== 'undefined' 
+                  ? `${window.location.origin}/api/auth/voice`
+                  : '/api/auth/voice';
+                
+                const response = await fetch(apiUrl, {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
