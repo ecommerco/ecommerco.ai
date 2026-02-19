@@ -47,6 +47,10 @@ export default function LoginPage() {
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!auth) {
+      setError("Authentication is not available. Please configure Firebase.");
+      return;
+    }
     setError("");
     setIsLoading(true);
 
@@ -89,6 +93,10 @@ export default function LoginPage() {
 
   const handlePhoneLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!auth) {
+      setError("Authentication is not available. Please configure Firebase.");
+      return;
+    }
     setError("");
     setIsLoading(true);
 
