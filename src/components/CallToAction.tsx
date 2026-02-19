@@ -43,32 +43,39 @@ export function CallToAction() {
           <div>
             <h4 className="font-bold text-white mb-4">Product</h4>
             <ul className="space-y-2 text-sm text-gray-500">
-              <li><Link href="#" className="hover:text-primary transition-colors">Store Builder</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Neural Analytics</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Pricing</Link></li>
+              <li><Link href="/builder" className="hover:text-primary transition-colors">Store Builder</Link></li>
+              <li><Link href="/features" className="hover:text-primary transition-colors">Features</Link></li>
+              <li><Link href="/pricing" className="hover:text-primary transition-colors">Pricing</Link></li>
+              <li><Link href="/solutions" className="hover:text-primary transition-colors">Solutions</Link></li>
+              <li><Link href="/how-it-works" className="hover:text-primary transition-colors">How It Works</Link></li>
             </ul>
           </div>
           <div>
             <h4 className="font-bold text-white mb-4">Company</h4>
             <ul className="space-y-2 text-sm text-gray-500">
-              <li><Link href="#" className="hover:text-primary transition-colors">About</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Careers</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Blog</Link></li>
+              <li><Link href="/about" className="hover:text-primary transition-colors">About</Link></li>
+              <li><Link href="/careers" className="hover:text-primary transition-colors">Careers</Link></li>
+              <li><Link href="/blog" className="hover:text-primary transition-colors">Blog</Link></li>
+              <li><Link href="/contact" className="hover:text-primary transition-colors">Contact</Link></li>
+              <li><Link href="/partners" className="hover:text-primary transition-colors">Partners</Link></li>
             </ul>
           </div>
           <div>
             <h4 className="font-bold text-white mb-4">Resources</h4>
             <ul className="space-y-2 text-sm text-gray-500">
               <li><Link href="/developers" className="hover:text-primary transition-colors">Developers</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Community</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Help Center</Link></li>
+              <li><Link href="/community" className="hover:text-primary transition-colors">Community</Link></li>
+              <li><Link href="/help" className="hover:text-primary transition-colors">Help Center</Link></li>
+              <li><Link href="/resources" className="hover:text-primary transition-colors">Resources</Link></li>
+              <li><Link href="/academy" className="hover:text-primary transition-colors">Academy</Link></li>
             </ul>
           </div>
           <div>
             <h4 className="font-bold text-white mb-4">Legal</h4>
             <ul className="space-y-2 text-sm text-gray-500">
-              <li><Link href="#" className="hover:text-primary transition-colors">Privacy</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Terms</Link></li>
+              <li><Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link></li>
+              <li><Link href="/live" className="hover:text-primary transition-colors">Live Progress</Link></li>
             </ul>
           </div>
         </div>

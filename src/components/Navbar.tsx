@@ -70,11 +70,19 @@ export function Navbar() {
               className="absolute inset-x-0 top-0 bg-black/95 border-b border-white/10 p-6 pt-24 flex flex-col gap-6 md:hidden h-screen"
             >
               <nav className="flex flex-col gap-6 text-lg font-medium text-gray-400">
+                <Link href="/" className="hover:text-white transition-colors" onClick={() => setIsOpen(false)}>Home</Link>
                 <Link href="/features" className="hover:text-white transition-colors" onClick={() => setIsOpen(false)}>Features</Link>
                 <Link href="/builder" className="hover:text-white transition-colors text-primary" onClick={() => setIsOpen(false)}>Builder</Link>
+                <Link href="/solutions" className="hover:text-white transition-colors" onClick={() => setIsOpen(false)}>Solutions</Link>
+                <Link href="/resources" className="hover:text-white transition-colors" onClick={() => setIsOpen(false)}>Resources</Link>
+                <Link href="/partners" className="hover:text-white transition-colors" onClick={() => setIsOpen(false)}>Partners</Link>
                 <Link href="/developers" className="hover:text-white transition-colors" onClick={() => setIsOpen(false)}>Developers</Link>
                 <Link href="/how-it-works" className="hover:text-white transition-colors" onClick={() => setIsOpen(false)}>How it Works</Link>
                 <Link href="/pricing" className="hover:text-white transition-colors" onClick={() => setIsOpen(false)}>Pricing</Link>
+                <Link href="/help" className="hover:text-white transition-colors" onClick={() => setIsOpen(false)}>Help</Link>
+                <Link href="/blog" className="hover:text-white transition-colors" onClick={() => setIsOpen(false)}>Blog</Link>
+                <Link href="/about" className="hover:text-white transition-colors" onClick={() => setIsOpen(false)}>About</Link>
+                <Link href="/live" className="hover:text-primary transition-colors" onClick={() => setIsOpen(false)}>Live Progress</Link>
               </nav>
               <div className="flex flex-col gap-4 mt-auto pb-10">
                 <div className="px-4">
