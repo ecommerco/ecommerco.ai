@@ -11,16 +11,20 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
-let app: FirebaseApp;
-if (getApps().length === 0) {
-  app = initializeApp(firebaseConfig);
-} else {
+// Initialize Firebase only if config is available
+let app: FirebaseApp | null = null;
+if (firebaseConfig.apiKey && getApps().length === 0) {
+  try {
+    app = initializeApp(firebaseConfig);
+  } catch (error) {
+    console.warn('Firebase initialization failed:', error);
+  }
+} else if (getApps().length > 0) {
   app = getApps()[0];
 }
 
-// Initialize Firebase services
-export const auth: Auth = getAuth(app);
-export const db: Firestore = getFirestore(app);
+// Initialize Firebase services only if app is initialized
+export const auth: Auth | null = app ? getAuth(app) : null;
+export const db: Firestore | null = app ? getFirestore(app) : null;
 
 export default app;
