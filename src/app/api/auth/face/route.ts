@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit, getClientIP } from '@/lib/rate-limit';
 
 /**
  * Face Recognition API Route
@@ -12,6 +13,28 @@ import { NextRequest, NextResponse } from 'next/server';
  * { success: boolean, userId?: string, token?: string, error?: string }
  */
 export async function POST(req: NextRequest) {
+  // Rate limiting: 5 requests per 15 minutes per IP
+  const clientIP = getClientIP(req);
+  const rateLimitResult = rateLimit(`face:${clientIP}`, 5, 15 * 60 * 1000);
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Too many requests. Please try again later.',
+      },
+      {
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': '5',
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+          'Retry-After': Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000).toString(),
+        },
+      }
+    );
+  }
+
   try {
     const body = await req.json();
     const { image } = body;
@@ -49,16 +72,40 @@ export async function POST(req: NextRequest) {
     // });
 
     // For now, return structure for production integration
-    return NextResponse.json({
-      success: false,
-      error: 'Face recognition service not configured. Please set up Azure Face API, AWS Rekognition, or FaceIO.',
-    }, { status: 501 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Face recognition service not configured. Please set up Azure Face API, AWS Rekognition, or FaceIO.',
+      },
+      {
+        status: 501,
+        headers: {
+          'X-RateLimit-Limit': '5',
+          'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+        },
+      }
+    );
 
   } catch (error: any) {
-    console.error('Face recognition error:', error);
+    // Log error for monitoring (in production, use proper logging service)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Face recognition error:', error);
+    }
+    
     return NextResponse.json(
-      { success: false, error: error.message || 'Face recognition failed' },
-      { status: 500 }
+      {
+        success: false,
+        error: 'Face recognition service temporarily unavailable. Please try again later.',
+      },
+      {
+        status: 500,
+        headers: {
+          'X-RateLimit-Limit': '5',
+          'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+        },
+      }
     );
   }
 }

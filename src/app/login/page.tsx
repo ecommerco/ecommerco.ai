@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -43,18 +43,51 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [isScanningFace, setIsScanningFace] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
+  const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recognitionRef = useRef<any>(null);
+
+  // Cleanup streams on unmount
+  useEffect(() => {
+    return () => {
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+      }
+      if (audioStream) {
+        audioStream.getTracks().forEach(track => track.stop());
+      }
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, [videoStream, audioStream]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation
     if (!email) {
       setError("Email is required");
       return;
     }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
     setError("");
     setIsLoading(true);
 
     try {
-      // Send OTP to email via backend API
       const response = await fetch('/api/auth/otp', {
         method: 'POST',
         headers: {
@@ -62,9 +95,13 @@ export default function LoginPage() {
         },
         body: JSON.stringify({
           action: 'send',
-          email,
+          email: email.trim().toLowerCase(),
         }),
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
       const data = await response.json();
 
@@ -73,15 +110,69 @@ export default function LoginPage() {
       }
 
       setIsLoading(false);
-      
-      // Show OTP input form (you'll need to implement this UI)
-      // For now, show success message
-      setError(""); // Clear any previous errors
-      // TODO: Show OTP input form and handle verification
-      alert("Verification code sent! Please check your email and enter the code.");
+      setOtpSent(true);
+      setError("");
       
     } catch (error: any) {
-      setError(error.message || "Failed to send verification code.");
+      setError(error.message || "Failed to send verification code. Please try again.");
+      setIsLoading(false);
+    }
+  };
+
+  const handleOtpVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validation
+    if (!otpCode || otpCode.length !== 6) {
+      setError("Please enter a valid 6-digit code");
+      return;
+    }
+
+    if (!/^\d{6}$/.test(otpCode)) {
+      setError("Code must contain only numbers");
+      return;
+    }
+
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/auth/otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'verify',
+          email: authMethod === 'email' ? email.trim().toLowerCase() : undefined,
+          phone: authMethod === 'phone' ? phone.trim() : undefined,
+          code: otpCode.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Invalid verification code');
+      }
+
+      // Store token securely
+      if (data.token) {
+        localStorage.setItem('auth_token', data.token);
+        // Set expiration if provided
+        if (data.expiresAt) {
+          localStorage.setItem('auth_token_expires', data.expiresAt.toString());
+        }
+      }
+
+      // Redirect to dashboard
+      router.push("/dashboard");
+    } catch (error: any) {
+      setError(error.message || "Invalid verification code. Please try again.");
       setIsLoading(false);
     }
   };
@@ -124,15 +215,25 @@ export default function LoginPage() {
 
   const handlePhoneLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation
     if (!phone) {
       setError("Phone number is required");
       return;
     }
+
+    // Basic phone validation (international format)
+    const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+    const cleanedPhone = phone.replace(/\s|-|\(|\)/g, '');
+    if (!phoneRegex.test(cleanedPhone)) {
+      setError("Please enter a valid phone number (e.g., +1234567890)");
+      return;
+    }
+
     setError("");
     setIsLoading(true);
 
     try {
-      // Send OTP to phone via backend API
       const response = await fetch('/api/auth/otp', {
         method: 'POST',
         headers: {
@@ -140,9 +241,13 @@ export default function LoginPage() {
         },
         body: JSON.stringify({
           action: 'send',
-          phone,
+          phone: cleanedPhone,
         }),
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
       const data = await response.json();
 
@@ -151,15 +256,11 @@ export default function LoginPage() {
       }
 
       setIsLoading(false);
-      
-      // Show OTP input form (you'll need to implement this UI)
-      // For now, show success message
-      setError(""); // Clear any previous errors
-      // TODO: Show OTP input form and handle verification
-      alert("Verification code sent! Please check your phone and enter the code.");
+      setOtpSent(true);
+      setError("");
       
     } catch (error: any) {
-      setError(error.message || "Failed to send verification code.");
+      setError(error.message || "Failed to send verification code. Please try again.");
       setIsLoading(false);
     }
   };
@@ -179,6 +280,8 @@ export default function LoginPage() {
         } 
       });
 
+      setVideoStream(stream);
+
       // Create video element to capture face
       const video = document.createElement('video');
       video.srcObject = stream;
@@ -189,6 +292,9 @@ export default function LoginPage() {
         video.onloadedmetadata = () => resolve(null);
       });
 
+      // Wait 2 seconds for user to position face
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
       // Capture frame
       const canvas = document.createElement('canvas');
       canvas.width = video.videoWidth;
@@ -198,9 +304,16 @@ export default function LoginPage() {
 
       // Stop camera
       stream.getTracks().forEach(track => track.stop());
+      setVideoStream(null);
 
-      // Convert canvas to base64
-      const imageBase64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+      // Convert canvas to base64 with compression
+      const imageBase64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+
+      // Validate image size (max 5MB)
+      const imageSize = (imageBase64.length * 3) / 4;
+      if (imageSize > 5 * 1024 * 1024) {
+        throw new Error('Image is too large. Please try again.');
+      }
 
       // Send to backend API for face recognition
       const response = await fetch('/api/auth/face', {
@@ -211,21 +324,32 @@ export default function LoginPage() {
         body: JSON.stringify({ image: imageBase64 }),
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
 
       if (!data.success) {
         throw new Error(data.error || 'Face recognition failed');
       }
 
-      // Store token and redirect
+      // Store token securely
       if (data.token) {
         localStorage.setItem('auth_token', data.token);
+        if (data.expiresAt) {
+          localStorage.setItem('auth_token_expires', data.expiresAt.toString());
+        }
       }
 
       setIsScanningFace(false);
       router.push("/dashboard");
     } catch (error: any) {
       setIsScanningFace(false);
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+        setVideoStream(null);
+      }
       setError(error.message || "Face recognition failed. Please try again.");
       setIsLoading(false);
     }
@@ -248,99 +372,180 @@ export default function LoginPage() {
         recognition.continuous = false;
         recognition.interimResults = false;
         recognition.lang = 'en-US';
+        recognition.maxAlternatives = 1;
+
+        recognitionRef.current = recognition;
 
         recognition.onresult = async (event: any) => {
-          const transcript = event.results[0][0].transcript;
-          
-          // Stop recording
-          stream.getTracks().forEach(track => track.stop());
-          setIsRecording(false);
+          try {
+            const transcript = event.results[0][0].transcript;
+            
+            // Stop recording
+            stream.getTracks().forEach(track => track.stop());
+            setAudioStream(null);
+            setIsRecording(false);
 
-          // Send transcript to backend for voice verification
-          // Note: For production, you should send the raw audio, not just transcript
-          const response = await fetch('/api/auth/voice', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ transcript }),
-          });
-
-          const data = await response.json();
-
-          if (!data.success) {
-            setError(data.error || 'Voice recognition failed');
-            setIsLoading(false);
-            return;
-          }
-
-          // Store token and redirect
-          if (data.token) {
-            localStorage.setItem('auth_token', data.token);
-          }
-
-          router.push("/dashboard");
-        };
-
-        recognition.onerror = (event: any) => {
-          stream.getTracks().forEach(track => track.stop());
-          setIsRecording(false);
-          setError("Voice recognition failed. Please try again.");
-          setIsLoading(false);
-        };
-
-        recognition.start();
-      } else {
-        // Fallback: Use MediaRecorder API
-        const mediaRecorder = new MediaRecorder(stream);
-        const audioChunks: Blob[] = [];
-
-        mediaRecorder.ondataavailable = (event) => {
-          audioChunks.push(event.data);
-        };
-
-        mediaRecorder.onstop = async () => {
-          const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-          
-          // Convert audio blob to base64
-          const reader = new FileReader();
-          reader.onloadend = async () => {
-            const audioBase64 = (reader.result as string).split(',')[1];
-
-            // Send to backend API for voice recognition
+            // Send transcript to backend for voice verification
             const response = await fetch('/api/auth/voice', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({ audio: audioBase64 }),
+              body: JSON.stringify({ transcript: transcript.trim() }),
             });
+
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
 
             const data = await response.json();
 
-            setIsRecording(false);
-
             if (!data.success) {
-              setError(data.error || 'Voice recognition failed');
-              setIsLoading(false);
-              return;
+              throw new Error(data.error || 'Voice recognition failed');
             }
 
-            // Store token and redirect
+            // Store token securely
             if (data.token) {
               localStorage.setItem('auth_token', data.token);
+              if (data.expiresAt) {
+                localStorage.setItem('auth_token_expires', data.expiresAt.toString());
+              }
             }
 
             router.push("/dashboard");
-          };
-          reader.readAsDataURL(audioBlob);
+          } catch (error: any) {
+            setError(error.message || 'Voice recognition failed. Please try again.');
+            setIsLoading(false);
+          }
+        };
+
+        recognition.onerror = (event: any) => {
+          stream.getTracks().forEach(track => track.stop());
+          setAudioStream(null);
+          setIsRecording(false);
+          
+          let errorMessage = "Voice recognition failed. Please try again.";
+          if (event.error === 'no-speech') {
+            errorMessage = "No speech detected. Please try again.";
+          } else if (event.error === 'audio-capture') {
+            errorMessage = "Microphone not found. Please check your microphone settings.";
+          } else if (event.error === 'not-allowed') {
+            errorMessage = "Microphone access denied. Please allow microphone access.";
+          }
+          
+          setError(errorMessage);
+          setIsLoading(false);
+        };
+
+        recognition.onend = () => {
+          if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            setAudioStream(null);
+          }
+        };
+
+        recognition.start();
+        setAudioStream(stream);
+      } else {
+        // Fallback: Use MediaRecorder API
+        const mediaRecorder = new MediaRecorder(stream, {
+          mimeType: 'audio/webm;codecs=opus',
+        });
+        const audioChunks: Blob[] = [];
+
+        mediaRecorderRef.current = mediaRecorder;
+        setAudioStream(stream);
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunks.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = async () => {
+          try {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            
+            // Validate audio size (max 10MB)
+            if (audioBlob.size > 10 * 1024 * 1024) {
+              throw new Error('Audio file is too large. Please try again.');
+            }
+
+            // Convert audio blob to base64
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+              try {
+                const audioBase64 = (reader.result as string).split(',')[1];
+
+                // Send to backend API for voice recognition
+                const response = await fetch('/api/auth/voice', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ audio: audioBase64 }),
+                });
+
+                if (!response.ok) {
+                  throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                setIsRecording(false);
+                stream.getTracks().forEach(track => track.stop());
+                setAudioStream(null);
+
+                if (!data.success) {
+                  throw new Error(data.error || 'Voice recognition failed');
+                }
+
+                // Store token securely
+                if (data.token) {
+                  localStorage.setItem('auth_token', data.token);
+                  if (data.expiresAt) {
+                    localStorage.setItem('auth_token_expires', data.expiresAt.toString());
+                  }
+                }
+
+                router.push("/dashboard");
+              } catch (error: any) {
+                setError(error.message || 'Voice recognition failed. Please try again.');
+                setIsLoading(false);
+                stream.getTracks().forEach(track => track.stop());
+                setAudioStream(null);
+              }
+            };
+            reader.onerror = () => {
+              setError('Failed to process audio. Please try again.');
+              setIsLoading(false);
+              stream.getTracks().forEach(track => track.stop());
+              setAudioStream(null);
+            };
+            reader.readAsDataURL(audioBlob);
+          } catch (error: any) {
+            setError(error.message || 'Voice recognition failed. Please try again.');
+            setIsLoading(false);
+            stream.getTracks().forEach(track => track.stop());
+            setAudioStream(null);
+          }
+        };
+
+        mediaRecorder.onerror = (event: any) => {
+          setError('Recording error. Please try again.');
+          setIsLoading(false);
+          stream.getTracks().forEach(track => track.stop());
+          setAudioStream(null);
         };
 
         mediaRecorder.start();
+        
+        // Record for 5 seconds max
         setTimeout(() => {
-          mediaRecorder.stop();
-          stream.getTracks().forEach(track => track.stop());
-        }, 3000);
+          if (mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+          }
+        }, 5000);
       }
     } catch (error: any) {
       setIsRecording(false);
@@ -361,58 +566,79 @@ export default function LoginPage() {
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-sm"
+            className="relative bg-gradient-to-br from-white/5 via-white/5 to-white/3 border border-white/10 p-8 md:p-10 rounded-3xl backdrop-blur-xl shadow-2xl"
           >
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold tracking-tighter mb-2">Welcome Back</h1>
-              <p className="text-gray-400">Passwordless authentication - Choose your preferred method</p>
+            <div className="text-center mb-10">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 mb-4">
+                <User className="w-8 h-8 text-primary" />
+              </div>
+              <h1 className="text-4xl font-bold tracking-tight mb-3 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                Welcome Back
+              </h1>
+              <p className="text-gray-400 text-sm">Secure passwordless authentication - Choose your preferred method</p>
             </div>
 
             {/* Auth Method Tabs */}
-            <div className="grid grid-cols-2 gap-2 mb-8">
+            <div className="grid grid-cols-2 gap-3 mb-8">
               <button
-                onClick={() => setAuthMethod('face')}
-                className={`flex flex-col items-center justify-center gap-2 py-4 rounded-lg text-sm font-medium transition-all border-2 ${
+                onClick={() => {
+                  setAuthMethod('face');
+                  setOtpSent(false);
+                  setOtpCode("");
+                }}
+                className={`group flex flex-col items-center justify-center gap-2.5 py-4 rounded-xl text-sm font-semibold transition-all border-2 ${
                   authMethod === 'face' 
-                    ? 'bg-primary text-black border-primary shadow-lg' 
-                    : 'bg-black/50 text-gray-400 border-white/10 hover:border-primary/50 hover:text-white'
+                    ? 'bg-gradient-to-br from-primary to-yellow-400 text-black border-primary shadow-lg shadow-primary/20 scale-105' 
+                    : 'bg-black/40 text-gray-400 border-white/10 hover:border-primary/30 hover:text-white hover:bg-black/60 hover:scale-102'
                 }`}
               >
-                <User className="w-5 h-5" />
-                Face Recognition
+                <User className={`w-5 h-5 transition-transform ${authMethod === 'face' ? 'scale-110' : 'group-hover:scale-110'}`} />
+                <span>Face</span>
               </button>
               <button
-                onClick={() => setAuthMethod('voice')}
-                className={`flex flex-col items-center justify-center gap-2 py-4 rounded-lg text-sm font-medium transition-all border-2 ${
+                onClick={() => {
+                  setAuthMethod('voice');
+                  setOtpSent(false);
+                  setOtpCode("");
+                }}
+                className={`group flex flex-col items-center justify-center gap-2.5 py-4 rounded-xl text-sm font-semibold transition-all border-2 ${
                   authMethod === 'voice' 
-                    ? 'bg-primary text-black border-primary shadow-lg' 
-                    : 'bg-black/50 text-gray-400 border-white/10 hover:border-primary/50 hover:text-white'
+                    ? 'bg-gradient-to-br from-primary to-yellow-400 text-black border-primary shadow-lg shadow-primary/20 scale-105' 
+                    : 'bg-black/40 text-gray-400 border-white/10 hover:border-primary/30 hover:text-white hover:bg-black/60 hover:scale-102'
                 }`}
               >
-                <Mic className="w-5 h-5" />
-                Voice Recognition
+                <Mic className={`w-5 h-5 transition-transform ${authMethod === 'voice' ? 'scale-110' : 'group-hover:scale-110'}`} />
+                <span>Voice</span>
               </button>
               <button
-                onClick={() => setAuthMethod('email')}
-                className={`flex flex-col items-center justify-center gap-2 py-4 rounded-lg text-sm font-medium transition-all border-2 ${
+                onClick={() => {
+                  setAuthMethod('email');
+                  setOtpSent(false);
+                  setOtpCode("");
+                }}
+                className={`group flex flex-col items-center justify-center gap-2.5 py-4 rounded-xl text-sm font-semibold transition-all border-2 ${
                   authMethod === 'email' 
-                    ? 'bg-primary text-black border-primary shadow-lg' 
-                    : 'bg-black/50 text-gray-400 border-white/10 hover:border-primary/50 hover:text-white'
+                    ? 'bg-gradient-to-br from-primary to-yellow-400 text-black border-primary shadow-lg shadow-primary/20 scale-105' 
+                    : 'bg-black/40 text-gray-400 border-white/10 hover:border-primary/30 hover:text-white hover:bg-black/60 hover:scale-102'
                 }`}
               >
-                <Mail className="w-5 h-5" />
-                Email (OTP)
+                <Mail className={`w-5 h-5 transition-transform ${authMethod === 'email' ? 'scale-110' : 'group-hover:scale-110'}`} />
+                <span>Email</span>
               </button>
               <button
-                onClick={() => setAuthMethod('phone')}
-                className={`flex flex-col items-center justify-center gap-2 py-4 rounded-lg text-sm font-medium transition-all border-2 ${
+                onClick={() => {
+                  setAuthMethod('phone');
+                  setOtpSent(false);
+                  setOtpCode("");
+                }}
+                className={`group flex flex-col items-center justify-center gap-2.5 py-4 rounded-xl text-sm font-semibold transition-all border-2 ${
                   authMethod === 'phone' 
-                    ? 'bg-primary text-black border-primary shadow-lg' 
-                    : 'bg-black/50 text-gray-400 border-white/10 hover:border-primary/50 hover:text-white'
+                    ? 'bg-gradient-to-br from-primary to-yellow-400 text-black border-primary shadow-lg shadow-primary/20 scale-105' 
+                    : 'bg-black/40 text-gray-400 border-white/10 hover:border-primary/30 hover:text-white hover:bg-black/60 hover:scale-102'
                 }`}
               >
-                <Smartphone className="w-5 h-5" />
-                Phone (OTP)
+                <Smartphone className={`w-5 h-5 transition-transform ${authMethod === 'phone' ? 'scale-110' : 'group-hover:scale-110'}`} />
+                <span>Phone</span>
               </button>
             </div>
 
@@ -424,153 +650,365 @@ export default function LoginPage() {
 
             {/* Face Recognition */}
             {authMethod === 'face' && (
-              <div className="space-y-4">
-                <div className="text-center py-8">
-                  <div className="relative w-48 h-48 mx-auto mb-6 rounded-full border-4 border-primary/50 overflow-hidden bg-black/50">
+              <div className="space-y-6">
+                <div className="text-center py-6">
+                  <div className="relative w-64 h-64 mx-auto mb-6 rounded-2xl border-2 border-primary/30 overflow-hidden bg-gradient-to-br from-black/80 to-black/40 backdrop-blur-sm">
                     {isScanningFace ? (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-full h-full bg-gradient-to-br from-primary/20 to-transparent animate-pulse" />
+                      <>
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <User className="w-16 h-16 text-primary animate-pulse" />
+                          <div className="w-full h-full bg-gradient-to-br from-primary/10 via-primary/5 to-transparent animate-pulse" />
                         </div>
-                      </div>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="relative">
+                            <div className="w-32 h-32 rounded-full border-4 border-primary/50 animate-ping" />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <User className="w-20 h-20 text-primary" />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="absolute bottom-4 left-0 right-0 text-center">
+                          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/20 backdrop-blur-sm rounded-full border border-primary/30">
+                            <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                            <span className="text-sm font-medium text-primary">Scanning...</span>
+                          </div>
+                        </div>
+                      </>
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <User className="w-16 h-16 text-gray-500" />
+                        <div className="text-center">
+                          <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border-2 border-primary/30 flex items-center justify-center">
+                            <User className="w-12 h-12 text-primary/60" />
+                          </div>
+                          <p className="text-xs text-gray-500 mt-2">Position your face in the frame</p>
+                        </div>
                       </div>
                     )}
                   </div>
-                  <p className="text-gray-400 mb-4">
-                    {isScanningFace 
-                      ? "Scanning your face... Please look at the camera" 
-                      : "Click below to start face recognition"}
-                  </p>
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-semibold text-white">Face Recognition</h3>
+                    <p className="text-sm text-gray-400 max-w-sm mx-auto">
+                      {isScanningFace 
+                        ? "Please look directly at the camera and keep still" 
+                        : "Secure biometric authentication using facial recognition technology"}
+                    </p>
+                  </div>
                 </div>
                 <button 
                   onClick={handleFaceLogin}
-                  disabled={isLoading}
-                  className="w-full h-12 bg-primary text-black font-bold rounded-lg hover:bg-yellow-400 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+                  disabled={isLoading || isScanningFace}
+                  className="w-full h-14 bg-gradient-to-r from-primary to-yellow-400 text-black font-bold rounded-xl hover:from-yellow-400 hover:to-primary transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? (
-                    <span className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                  {isLoading || isScanningFace ? (
+                    <>
+                      <span className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                      <span>{isScanningFace ? 'Scanning Face...' : 'Processing...'}</span>
+                    </>
                   ) : (
                     <>
-                      {isScanningFace ? 'Scanning...' : 'Start Face Recognition'} 
-                      <User className="w-4 h-4" />
+                      <User className="w-5 h-5" />
+                      <span>Start Face Recognition</span>
                     </>
                   )}
                 </button>
+                {error && (
+                  <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">
+                    {error}
+                  </div>
+                )}
               </div>
             )}
 
             {/* Voice Recognition */}
             {authMethod === 'voice' && (
-              <div className="space-y-4">
-                <div className="text-center py-8">
-                  <div className="relative w-48 h-48 mx-auto mb-6 rounded-full border-4 border-primary/50 overflow-hidden bg-black/50 flex items-center justify-center">
+              <div className="space-y-6">
+                <div className="text-center py-6">
+                  <div className="relative w-64 h-64 mx-auto mb-6 rounded-2xl border-2 border-primary/30 overflow-hidden bg-gradient-to-br from-black/80 to-black/40 backdrop-blur-sm flex items-center justify-center">
                     {isRecording ? (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-32 h-32 rounded-full bg-primary/30 animate-ping" />
+                      <>
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <Mic className="w-16 h-16 text-primary animate-pulse" />
+                          <div className="w-full h-full bg-gradient-to-br from-primary/10 via-primary/5 to-transparent animate-pulse" />
                         </div>
-                      </div>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="relative">
+                            <div className="w-32 h-32 rounded-full border-4 border-primary/50 animate-ping" />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <Mic className="w-20 h-20 text-primary" />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="absolute bottom-4 left-0 right-0 text-center">
+                          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/20 backdrop-blur-sm rounded-full border border-primary/30">
+                            <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                            <span className="text-sm font-medium text-primary">Listening...</span>
+                          </div>
+                        </div>
+                      </>
                     ) : (
-                      <Mic className="w-16 h-16 text-gray-500" />
+                      <div className="text-center">
+                        <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border-2 border-primary/30 flex items-center justify-center">
+                          <Mic className="w-12 h-12 text-primary/60" />
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">Speak clearly into your microphone</p>
+                      </div>
                     )}
                   </div>
-                  <p className="text-gray-400 mb-4">
-                    {isRecording 
-                      ? "Listening... Please speak your passphrase" 
-                      : "Click below to start voice recognition"}
-                  </p>
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-semibold text-white">Voice Recognition</h3>
+                    <p className="text-sm text-gray-400 max-w-sm mx-auto">
+                      {isRecording 
+                        ? "Speak your passphrase clearly and naturally" 
+                        : "Secure biometric authentication using your unique voice signature"}
+                    </p>
+                  </div>
                 </div>
                 <button 
                   onClick={handleVoiceLogin}
-                  disabled={isLoading}
-                  className="w-full h-12 bg-primary text-black font-bold rounded-lg hover:bg-yellow-400 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+                  disabled={isLoading || isRecording}
+                  className="w-full h-14 bg-gradient-to-r from-primary to-yellow-400 text-black font-bold rounded-xl hover:from-yellow-400 hover:to-primary transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? (
-                    <span className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                  {isLoading || isRecording ? (
+                    <>
+                      <span className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                      <span>{isRecording ? 'Recording...' : 'Processing...'}</span>
+                    </>
                   ) : (
                     <>
-                      {isRecording ? 'Recording...' : 'Start Voice Recognition'} 
-                      <Mic className="w-4 h-4" />
+                      <Mic className="w-5 h-5" />
+                      <span>Start Voice Recognition</span>
                     </>
                   )}
                 </button>
+                {error && (
+                  <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">
+                    {error}
+                  </div>
+                )}
               </div>
             )}
 
             {/* Email OTP */}
             {authMethod === 'email' && (
-              <form onSubmit={handleEmailLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300 ml-1">Email</label>
-                  <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                    <input 
-                      type="email" 
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full h-12 bg-black/50 border border-white/10 rounded-lg px-10 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 transition-colors"
-                      placeholder="name@example.com"
-                    />
+              <div className="space-y-6">
+                {!otpSent ? (
+                  <form onSubmit={handleEmailLogin} className="space-y-5">
+                    <div className="space-y-3">
+                      <label className="text-sm font-semibold text-gray-200 ml-1 flex items-center gap-2">
+                        <Mail className="w-4 h-4" />
+                        Email Address
+                      </label>
+                      <div className="relative">
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                        <input 
+                          type="email" 
+                          required
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="w-full h-14 bg-black/60 border-2 border-white/10 rounded-xl px-12 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all text-base"
+                          placeholder="name@example.com"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-400 ml-1 flex items-start gap-2">
+                        <span className="text-primary mt-0.5">•</span>
+                        We&apos;ll send you a secure 6-digit verification code
+                      </p>
+                    </div>
+                    <button 
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full h-14 bg-gradient-to-r from-primary to-yellow-400 text-black font-bold rounded-xl hover:from-yellow-400 hover:to-primary transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoading ? (
+                        <>
+                          <span className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                          <span>Sending...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Send Verification Code</span>
+                          <ArrowRight className="w-5 h-5" />
+                        </>
+                      )}
+                    </button>
+                  </form>
+                ) : (
+                  <form onSubmit={handleOtpVerify} className="space-y-5">
+                    <div className="text-center py-4">
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/20 border-2 border-primary/30 flex items-center justify-center">
+                        <Mail className="w-8 h-8 text-primary" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-white mb-2">Check Your Email</h3>
+                      <p className="text-sm text-gray-400 mb-1">We sent a verification code to</p>
+                      <p className="text-sm font-medium text-primary">{email}</p>
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-sm font-semibold text-gray-200 ml-1">Verification Code</label>
+                      <input 
+                        type="text" 
+                        required
+                        maxLength={6}
+                        value={otpCode}
+                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                        className="w-full h-16 bg-black/60 border-2 border-white/10 rounded-xl px-6 text-white text-center text-3xl font-bold tracking-widest focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+                        placeholder="000000"
+                      />
+                      <div className="flex items-center justify-between text-xs">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOtpSent(false);
+                            setOtpCode("");
+                          }}
+                          className="text-gray-400 hover:text-primary transition-colors"
+                        >
+                          Change email
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleEmailLogin}
+                          className="text-primary hover:text-yellow-400 transition-colors font-medium"
+                        >
+                          Resend code
+                        </button>
+                      </div>
+                    </div>
+                    <button 
+                      type="submit"
+                      disabled={isLoading || otpCode.length !== 6}
+                      className="w-full h-14 bg-gradient-to-r from-primary to-yellow-400 text-black font-bold rounded-xl hover:from-yellow-400 hover:to-primary transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoading ? (
+                        <>
+                          <span className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                          <span>Verifying...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Verify Code</span>
+                          <ArrowRight className="w-5 h-5" />
+                        </>
+                      )}
+                    </button>
+                  </form>
+                )}
+                {error && (
+                  <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">
+                    {error}
                   </div>
-                  <p className="text-xs text-gray-500 ml-1">We&apos;ll send you a one-time code to verify your email.</p>
-                </div>
-                <button 
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full h-12 bg-primary text-black font-bold rounded-lg hover:bg-yellow-400 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 mt-6"
-                >
-                  {isLoading ? (
-                    <span className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      Send Verification Code
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                    </>
-                  )}
-                </button>
-              </form>
+                )}
+              </div>
             )}
 
             {/* Phone OTP */}
             {authMethod === 'phone' && (
-              <form onSubmit={handlePhoneLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300 ml-1">Phone Number</label>
-                  <div className="relative">
-                    <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                    <input 
-                      type="tel" 
-                      required
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full h-12 bg-black/50 border border-white/10 rounded-lg px-10 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 transition-colors"
-                      placeholder="+1 (555) 000-0000"
-                    />
+              <div className="space-y-6">
+                {!otpSent ? (
+                  <form onSubmit={handlePhoneLogin} className="space-y-5">
+                    <div className="space-y-3">
+                      <label className="text-sm font-semibold text-gray-200 ml-1 flex items-center gap-2">
+                        <Smartphone className="w-4 h-4" />
+                        Phone Number
+                      </label>
+                      <div className="relative">
+                        <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                        <input 
+                          type="tel" 
+                          required
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          className="w-full h-14 bg-black/60 border-2 border-white/10 rounded-xl px-12 text-white placeholder:text-gray-500 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all text-base"
+                          placeholder="+1 (555) 000-0000"
+                        />
+                      </div>
+                      <div id="recaptcha-container"></div>
+                      <p className="text-xs text-gray-400 ml-1 flex items-start gap-2">
+                        <span className="text-primary mt-0.5">•</span>
+                        We&apos;ll send you a secure 6-digit verification code via SMS
+                      </p>
+                    </div>
+                    <button 
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full h-14 bg-gradient-to-r from-primary to-yellow-400 text-black font-bold rounded-xl hover:from-yellow-400 hover:to-primary transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoading ? (
+                        <>
+                          <span className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                          <span>Sending...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Send Verification Code</span>
+                          <ArrowRight className="w-5 h-5" />
+                        </>
+                      )}
+                    </button>
+                  </form>
+                ) : (
+                  <form onSubmit={handleOtpVerify} className="space-y-5">
+                    <div className="text-center py-4">
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/20 border-2 border-primary/30 flex items-center justify-center">
+                        <Smartphone className="w-8 h-8 text-primary" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-white mb-2">Check Your Phone</h3>
+                      <p className="text-sm text-gray-400 mb-1">We sent a verification code to</p>
+                      <p className="text-sm font-medium text-primary">{phone}</p>
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-sm font-semibold text-gray-200 ml-1">Verification Code</label>
+                      <input 
+                        type="text" 
+                        required
+                        maxLength={6}
+                        value={otpCode}
+                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                        className="w-full h-16 bg-black/60 border-2 border-white/10 rounded-xl px-6 text-white text-center text-3xl font-bold tracking-widest focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+                        placeholder="000000"
+                      />
+                      <div className="flex items-center justify-between text-xs">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOtpSent(false);
+                            setOtpCode("");
+                          }}
+                          className="text-gray-400 hover:text-primary transition-colors"
+                        >
+                          Change number
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handlePhoneLogin}
+                          className="text-primary hover:text-yellow-400 transition-colors font-medium"
+                        >
+                          Resend code
+                        </button>
+                      </div>
+                    </div>
+                    <button 
+                      type="submit"
+                      disabled={isLoading || otpCode.length !== 6}
+                      className="w-full h-14 bg-gradient-to-r from-primary to-yellow-400 text-black font-bold rounded-xl hover:from-yellow-400 hover:to-primary transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoading ? (
+                        <>
+                          <span className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                          <span>Verifying...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Verify Code</span>
+                          <ArrowRight className="w-5 h-5" />
+                        </>
+                      )}
+                    </button>
+                  </form>
+                )}
+                {error && (
+                  <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">
+                    {error}
                   </div>
-                  <div id="recaptcha-container"></div>
-                  <p className="text-xs text-gray-500 ml-1">We&apos;ll send you a code to verify your phone number.</p>
-                </div>
-                <button 
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full h-12 bg-primary text-black font-bold rounded-lg hover:bg-yellow-400 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 mt-6"
-                >
-                  {isLoading ? (
-                    <span className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      Send Verification Code
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                    </>
-                  )}
-                </button>
-              </form>
+                )}
+              </div>
             )}
 
             <div className="relative my-8">

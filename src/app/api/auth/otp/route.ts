@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit, getClientIP } from '@/lib/rate-limit';
 
 /**
  * OTP Authentication API Route
@@ -9,9 +10,42 @@ import { NextRequest, NextResponse } from 'next/server';
  * POST /api/auth/otp/verify - Verify OTP code
  */
 export async function POST(req: NextRequest) {
+  const clientIP = getClientIP(req);
+  
   try {
     const body = await req.json();
     const { action, email, phone, code } = body;
+
+    // Validate action
+    if (!action || (action !== 'send' && action !== 'verify')) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid action. Use "send" or "verify"' },
+        { status: 400 }
+      );
+    }
+
+    // Rate limiting based on action
+    const rateLimitKey = action === 'send' ? `otp-send:${clientIP}` : `otp-verify:${clientIP}`;
+    const maxRequests = action === 'send' ? 3 : 5; // Stricter limit for sending
+    const rateLimitResult = rateLimit(rateLimitKey, maxRequests, 15 * 60 * 1000);
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Too many requests. Please try again later.',
+        },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': maxRequests.toString(),
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+            'Retry-After': Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000).toString(),
+          },
+        }
+      );
+    }
 
     if (action === 'send') {
       // Send OTP
@@ -54,12 +88,21 @@ export async function POST(req: NextRequest) {
       //   to: phone,
       // });
 
-      return NextResponse.json({
-        success: true,
-        message: 'OTP sent successfully',
-        // In production, don't return OTP. Only return it in development.
-        ...(process.env.NODE_ENV === 'development' && { otp }),
-      });
+      const response = NextResponse.json(
+        {
+          success: true,
+          message: 'OTP sent successfully',
+          // In production, don't return OTP. Only return it in development.
+          ...(process.env.NODE_ENV === 'development' && { otp }),
+        }
+      );
+      
+      // Add rate limit headers
+      response.headers.set('X-RateLimit-Limit', maxRequests.toString());
+      response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+      response.headers.set('X-RateLimit-Reset', new Date(rateLimitResult.resetTime).toISOString());
+      
+      return response;
 
     } else if (action === 'verify') {
       // Verify OTP
@@ -123,22 +166,33 @@ export async function POST(req: NextRequest) {
       //   });
       // }
 
-      return NextResponse.json({
-        success: false,
-        error: 'OTP verification service not configured. Please set up database and email/SMS service.',
-      }, { status: 501 });
-
-    } else {
-      return NextResponse.json(
-        { success: false, error: 'Invalid action. Use "send" or "verify"' },
-        { status: 400 }
+      const response = NextResponse.json(
+        {
+          success: false,
+          error: 'OTP verification service not configured. Please set up database and email/SMS service.',
+        },
+        { status: 501 }
       );
+      
+      // Add rate limit headers
+      response.headers.set('X-RateLimit-Limit', maxRequests.toString());
+      response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+      response.headers.set('X-RateLimit-Reset', new Date(rateLimitResult.resetTime).toISOString());
+      
+      return response;
     }
 
   } catch (error: any) {
-    console.error('OTP error:', error);
+    // Log error for monitoring (in production, use proper logging service)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('OTP error:', error);
+    }
+    
     return NextResponse.json(
-      { success: false, error: error.message || 'OTP operation failed' },
+      {
+        success: false,
+        error: 'OTP service temporarily unavailable. Please try again later.',
+      },
       { status: 500 }
     );
   }
