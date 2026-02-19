@@ -180,11 +180,168 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
-    setError("Google login will be available soon. Please use Face, Voice, Email, or Phone authentication.");
+    setError("");
+    setIsLoading(true);
+
+    try {
+      // Use Google Identity Services (new way)
+      // For now, we'll use a simple flow that accepts email
+      // In production, integrate with Google OAuth 2.0
+      
+      // Check if Google Identity Services is available
+      if (typeof window !== 'undefined' && (window as any).google) {
+        // Use Google Identity Services
+        const google = (window as any).google;
+        google.accounts.id.initialize({
+          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
+          callback: async (response: any) => {
+            try {
+              const apiUrl = `${window.location.origin}/api/auth/google`;
+              const res = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idToken: response.credential }),
+              });
+
+              const data = await res.json();
+              if (data.success && data.token) {
+                localStorage.setItem('auth_token', data.token);
+                if (data.expiresAt) {
+                  localStorage.setItem('auth_token_expires', data.expiresAt.toString());
+                }
+                router.push("/dashboard");
+              } else {
+                throw new Error(data.error || 'Google login failed');
+              }
+            } catch (error: any) {
+              setError(error.message || 'Google login failed');
+              setIsLoading(false);
+            }
+          },
+        });
+
+        google.accounts.id.prompt();
+      } else {
+        // Fallback: Use email-based login
+        // For development/testing, we'll use a simple email prompt
+        const userEmail = prompt('Enter your Google email:');
+        if (!userEmail) {
+          setIsLoading(false);
+          return;
+        }
+
+        const apiUrl = typeof window !== 'undefined' 
+          ? `${window.location.origin}/api/auth/google`
+          : '/api/auth/google';
+        
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            email: userEmail.trim().toLowerCase(),
+            name: userEmail.split('@')[0],
+          }),
+        });
+
+        const data = await response.json();
+        if (data.success && data.token) {
+          localStorage.setItem('auth_token', data.token);
+          if (data.expiresAt) {
+            localStorage.setItem('auth_token_expires', data.expiresAt.toString());
+          }
+          router.push("/dashboard");
+        } else {
+          throw new Error(data.error || 'Google login failed');
+        }
+      }
+    } catch (error: any) {
+      setError(error.message || 'Google login failed. Please try again.');
+      setIsLoading(false);
+    }
   };
 
   const handleGithubLogin = async () => {
-    setError("GitHub login will be available soon. Please use Face, Voice, Email, or Phone authentication.");
+    setError("");
+    setIsLoading(true);
+
+    try {
+      // For development/testing, we'll use a simple email prompt
+      // In production, integrate with GitHub OAuth
+      const userEmail = prompt('Enter your GitHub email:');
+      if (!userEmail) {
+        setIsLoading(false);
+        return;
+      }
+
+      const apiUrl = typeof window !== 'undefined' 
+        ? `${window.location.origin}/api/auth/github`
+        : '/api/auth/github';
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: userEmail.trim().toLowerCase(),
+          name: userEmail.split('@')[0],
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success && data.token) {
+        localStorage.setItem('auth_token', data.token);
+        if (data.expiresAt) {
+          localStorage.setItem('auth_token_expires', data.expiresAt.toString());
+        }
+        router.push("/dashboard");
+      } else {
+        throw new Error(data.error || 'GitHub login failed');
+      }
+    } catch (error: any) {
+      setError(error.message || 'GitHub login failed. Please try again.');
+      setIsLoading(false);
+    }
+  };
+
+  const handleAppleLogin = async () => {
+    setError("");
+    setIsLoading(true);
+
+    try {
+      // For development/testing, we'll use a simple email prompt
+      // In production, integrate with Apple Sign In
+      const userEmail = prompt('Enter your Apple ID email:');
+      if (!userEmail) {
+        setIsLoading(false);
+        return;
+      }
+
+      const apiUrl = typeof window !== 'undefined' 
+        ? `${window.location.origin}/api/auth/apple`
+        : '/api/auth/apple';
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: userEmail.trim().toLowerCase(),
+          name: userEmail.split('@')[0],
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success && data.token) {
+        localStorage.setItem('auth_token', data.token);
+        if (data.expiresAt) {
+          localStorage.setItem('auth_token_expires', data.expiresAt.toString());
+        }
+        router.push("/dashboard");
+      } else {
+        throw new Error(data.error || 'Apple login failed');
+      }
+    } catch (error: any) {
+      setError(error.message || 'Apple login failed. Please try again.');
+      setIsLoading(false);
+    }
   };
 
   const handlePhoneLogin = async (e: React.FormEvent) => {
@@ -1158,7 +1315,8 @@ export default function LoginPage() {
               </button>
               <button 
                 type="button"
-                disabled
+                onClick={handleAppleLogin}
+                disabled={isLoading}
                 className="flex items-center justify-center h-12 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:border-white/20 transition-all text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <AppleIcon />
