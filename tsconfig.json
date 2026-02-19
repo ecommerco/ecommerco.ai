@@ -30,5 +30,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "page-builder/**/*", "page-builder-legacy-20260207_065445/**/*"]
+  "exclude": ["node_modules", "page-builder/**/*", "page-builder-legacy-20260207_065445/**/*", "web/**/*"]
 }
