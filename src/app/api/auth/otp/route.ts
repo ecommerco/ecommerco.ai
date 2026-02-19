@@ -245,13 +245,6 @@ export async function POST(req: NextRequest) {
       response.headers.set('X-RateLimit-Reset', new Date(rateLimitResult.resetTime).toISOString());
       
       return response;
-      
-      // Add rate limit headers
-      response.headers.set('X-RateLimit-Limit', maxRequests.toString());
-      response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
-      response.headers.set('X-RateLimit-Reset', new Date(rateLimitResult.resetTime).toISOString());
-      
-      return response;
     }
 
   } catch (error: any) {
