@@ -64,6 +64,10 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
+    if (!auth) {
+      setError("Authentication is not available. Please configure Firebase.");
+      return;
+    }
     setError("");
     setIsLoading(true);
 
@@ -78,6 +82,10 @@ export default function LoginPage() {
   };
 
   const handleGithubLogin = async () => {
+    if (!auth) {
+      setError("Authentication is not available. Please configure Firebase.");
+      return;
+    }
     setError("");
     setIsLoading(true);
 
