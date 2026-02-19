@@ -751,10 +751,25 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white selection:bg-primary/30 flex flex-col">
+    <div className="min-h-screen bg-black text-white selection:bg-primary/30 flex flex-col relative overflow-hidden">
+      {/* Background Video - Same as Home Page */}
+      <div className="fixed inset-0 z-0">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="w-full h-full object-cover opacity-30"
+        >
+          <source src="/hero-background.mp4" type="video/mp4" />
+        </video>
+        {/* Dark overlay for better contrast */}
+        <div className="absolute inset-0 bg-black/60" />
+      </div>
+
       <Navbar />
       
-      <main className="flex-1 flex items-center justify-center p-6 pt-24">
+      <main className="flex-1 flex items-center justify-center p-6 pt-24 relative z-10">
         <div className="w-full max-w-md relative">
           {/* Background Glow */}
           <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full opacity-20 pointer-events-none" />
