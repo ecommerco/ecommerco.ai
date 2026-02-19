@@ -687,72 +687,160 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Face Recognition */}
+            {/* Face Recognition - AI Enhanced */}
             {authMethod === 'face' && (
               <div className="space-y-6">
                 <div className="text-center py-6">
-                  <div className="relative w-64 h-64 mx-auto mb-6 rounded-2xl border-2 border-primary/30 overflow-hidden bg-gradient-to-br from-black/80 to-black/40 backdrop-blur-sm">
+                  <div className="relative w-72 h-72 mx-auto mb-6 rounded-3xl border-2 border-primary/40 overflow-hidden bg-gradient-to-br from-black/90 via-black/80 to-black/70 backdrop-blur-xl shadow-2xl">
+                    {/* Video Element - Hidden but active */}
+                    <video 
+                      ref={videoRef}
+                      className={`absolute inset-0 w-full h-full object-cover ${isScanningFace ? 'opacity-100' : 'opacity-0'}`}
+                      autoPlay
+                      playsInline
+                      muted
+                    />
+                    
+                    {/* AI Scanning Overlay */}
                     {isScanningFace ? (
                       <>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="w-full h-full bg-gradient-to-br from-primary/10 via-primary/5 to-transparent animate-pulse" />
+                        {/* Animated Grid Overlay - AI Scanning Effect */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5">
+                          <div className="absolute inset-0" style={{
+                            backgroundImage: `
+                              linear-gradient(rgba(247, 193, 30, 0.1) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(247, 193, 30, 0.1) 1px, transparent 1px)
+                            `,
+                            backgroundSize: '20px 20px',
+                            animation: 'gridMove 2s linear infinite'
+                          }} />
                         </div>
+
+                        {/* Face Detection Box Animation */}
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="relative">
-                            <div className="w-32 h-32 rounded-full border-4 border-primary/50 animate-ping" />
+                          <div className="relative w-48 h-64">
+                            {/* Corner indicators - AI scanning */}
+                            <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-primary animate-pulse" />
+                            <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-primary animate-pulse" />
+                            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-primary animate-pulse" />
+                            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-primary animate-pulse" />
+                            
+                            {/* Center AI Icon */}
                             <div className="absolute inset-0 flex items-center justify-center">
-                              <User className="w-20 h-20 text-primary" />
+                              <div className="relative">
+                                <div className="w-24 h-24 rounded-full bg-primary/20 border-4 border-primary/50 animate-ping" />
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-yellow-400 flex items-center justify-center shadow-lg">
+                                    <User className="w-10 h-10 text-black" />
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </div>
-                        <div className="absolute bottom-4 left-0 right-0 text-center">
-                          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/20 backdrop-blur-sm rounded-full border border-primary/30">
-                            <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                            <span className="text-sm font-medium text-primary">Scanning...</span>
+
+                        {/* AI Processing Indicator */}
+                        <div className="absolute bottom-6 left-0 right-0 text-center">
+                          <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-primary/30 to-yellow-400/30 backdrop-blur-md rounded-full border-2 border-primary/50 shadow-xl">
+                            <div className="relative">
+                              <div className="w-3 h-3 bg-primary rounded-full animate-ping absolute" />
+                              <div className="w-3 h-3 bg-primary rounded-full relative" />
+                            </div>
+                            <span className="text-sm font-bold text-primary drop-shadow-lg">
+                              🤖 AI Scanning Face...
+                            </span>
+                            <div className="flex gap-1">
+                              <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
+                              <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                              <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+                            </div>
                           </div>
+                        </div>
+
+                        {/* Scanning Lines Effect */}
+                        <div className="absolute inset-0 pointer-events-none">
+                          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent animate-pulse" />
+                          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent animate-pulse" style={{ animationDelay: '0.5s' }} />
                         </div>
                       </>
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="text-center">
-                          <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border-2 border-primary/30 flex items-center justify-center">
-                            <User className="w-12 h-12 text-primary/60" />
+                        <div className="text-center space-y-4">
+                          {/* AI Icon with Glow */}
+                          <div className="relative mx-auto">
+                            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary/30 via-primary/20 to-primary/10 border-4 border-primary/40 flex items-center justify-center shadow-2xl shadow-primary/30">
+                              <User className="w-16 h-16 text-primary" />
+                            </div>
+                            {/* Pulsing Glow */}
+                            <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
                           </div>
-                          <p className="text-xs text-gray-500 mt-2">Position your face in the frame</p>
+                          
+                          {/* Instructions */}
+                          <div className="space-y-2 px-4">
+                            <p className="text-sm font-semibold text-white">AI Face Recognition</p>
+                            <p className="text-xs text-gray-400 max-w-xs mx-auto">
+                              Position your face in the center and look directly at the camera
+                            </p>
+                            <div className="flex items-center justify-center gap-2 text-xs text-primary/80 mt-3">
+                              <span>🔒</span>
+                              <span>Secure • Fast • Passwordless</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}
                   </div>
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-semibold text-white">Face Recognition</h3>
+                  
+                  {/* Status Text */}
+                  <div className="space-y-2 mt-4">
+                    <h3 className="text-xl font-bold text-white flex items-center justify-center gap-2">
+                      <span>🤖</span>
+                      <span>AI-Powered Face Recognition</span>
+                    </h3>
                     <p className="text-sm text-gray-400 max-w-sm mx-auto">
                       {isScanningFace 
-                        ? "Please look directly at the camera and keep still" 
-                        : "Secure biometric authentication using facial recognition technology"}
+                        ? "AI is analyzing your facial features... Please keep still" 
+                        : "Advanced biometric authentication using machine learning technology"}
                     </p>
                   </div>
                 </div>
+                
+                {/* Action Button */}
                 <button 
                   onClick={handleFaceLogin}
                   disabled={isLoading || isScanningFace}
-                  className="w-full h-14 bg-gradient-to-r from-primary to-yellow-400 text-black font-bold rounded-xl hover:from-yellow-400 hover:to-primary transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="group relative w-full h-16 bg-gradient-to-r from-primary via-yellow-400 to-primary bg-size-200 bg-pos-0 hover:bg-pos-100 text-black font-bold rounded-2xl transition-all duration-500 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 shadow-2xl shadow-primary/30 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
                 >
+                  {/* Button Glow Effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                  
                   {isLoading || isScanningFace ? (
                     <>
-                      <span className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                      <span>{isScanningFace ? 'Scanning Face...' : 'Processing...'}</span>
+                      <span className="w-6 h-6 border-3 border-black/30 border-t-black rounded-full animate-spin" />
+                      <span className="font-bold text-lg">
+                        {isScanningFace ? '🤖 AI Scanning...' : '⚙️ Processing...'}
+                      </span>
                     </>
                   ) : (
                     <>
-                      <User className="w-5 h-5" />
-                      <span>Start Face Recognition</span>
+                      <User className="w-6 h-6" />
+                      <span className="font-bold text-lg">Start AI Face Recognition</span>
+                      <span className="text-2xl">→</span>
                     </>
                   )}
                 </button>
+                
                 {error && (
-                  <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">
-                    {error}
-                  </div>
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-4 rounded-xl bg-red-500/10 border-2 border-red-500/30 text-red-400 text-sm text-center backdrop-blur-sm"
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <AlertCircle className="w-5 h-5" />
+                      <span>{error}</span>
+                    </div>
+                  </motion.div>
                 )}
               </div>
             )}
