@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit, getClientIP } from '@/lib/rate-limit';
+import { prisma } from '@/lib/prisma';
+import jwt from 'jsonwebtoken';
 
 /**
  * Voice Recognition API Route
@@ -36,65 +38,101 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const contentType = req.headers.get('content-type') || '';
-    
-    let audioData: string | Buffer;
-    
-    if (contentType.includes('multipart/form-data')) {
-      const formData = await req.formData();
-      const audioFile = formData.get('audio') as File;
-      
-      if (!audioFile) {
-        return NextResponse.json(
-          { success: false, error: 'Audio file is required' },
-          { status: 400 }
-        );
-      }
-      
-      const arrayBuffer = await audioFile.arrayBuffer();
-      audioData = Buffer.from(arrayBuffer);
-    } else {
-      const body = await req.json();
-      const { audio } = body;
-      
-      if (!audio) {
-        return NextResponse.json(
-          { success: false, error: 'Audio data is required' },
-          { status: 400 }
-        );
-      }
-      
-      audioData = Buffer.from(audio, 'base64');
+    const body = await req.json();
+    const { features, audio } = body;
+
+    if (!features || !Array.isArray(features)) {
+      return NextResponse.json(
+        { success: false, error: 'Voice features are required' },
+        { status: 400 }
+      );
     }
 
-    // TODO: Integrate with voice recognition service
-    // Options:
-    // 1. Azure Speech Service: https://azure.microsoft.com/en-us/services/cognitive-services/speech-services/
-    // 2. AWS Transcribe: https://aws.amazon.com/transcribe/
-    // 3. Google Cloud Speech-to-Text: https://cloud.google.com/speech-to-text
-    // 4. Deepgram: https://deepgram.com/
-    
-    // Example with Azure Speech Service:
-    // const speechKey = process.env.AZURE_SPEECH_KEY;
-    // const speechRegion = process.env.AZURE_SPEECH_REGION;
-    // const speechConfig = SpeechConfig.fromSubscription(speechKey, speechRegion);
-    // const audioConfig = AudioConfig.fromStreamInput(audioData);
-    // const recognizer = new SpeechRecognizer(speechConfig, audioConfig);
-    // const result = await recognizer.recognizeOnceAsync();
-    
-    // Then extract voice features and verify against stored voiceprints
-    // const user = await prisma.user.findFirst({
-    //   where: { voicePrint: matches(result.voiceFeatures) },
-    // });
+    // Find user with matching voice features
+    const users = await prisma.user.findMany({
+      where: {
+        voicePrint: { not: null },
+      },
+    });
 
-    // For now, return structure for production integration
+    // Compare with stored voiceprints
+    let matchedUser = null;
+    const threshold = 0.5; // Voice matching threshold (lower than face because voice varies more)
+
+    for (const user of users) {
+      if (!user.voicePrint) continue;
+
+      try {
+        const storedFeatures = JSON.parse(user.voicePrint);
+        
+        // Calculate euclidean distance
+        let distance = 0;
+        for (let i = 0; i < Math.min(features.length, storedFeatures.length); i++) {
+          distance += Math.pow(features[i] - storedFeatures[i], 2);
+        }
+        distance = Math.sqrt(distance);
+
+        if (distance < threshold) {
+          matchedUser = user;
+          break;
+        }
+      } catch (error) {
+        // Skip invalid voiceprints
+        continue;
+      }
+    }
+
+    if (!matchedUser) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Voice not recognized. Please register your voice first or use another authentication method.',
+        },
+        {
+          status: 401,
+          headers: {
+            'X-RateLimit-Limit': '5',
+            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+          },
+        }
+      );
+    }
+
+    // Generate JWT token
+    const jwtSecret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+    const token = jwt.sign(
+      {
+        userId: matchedUser.id,
+        email: matchedUser.email,
+        method: 'voice',
+      },
+      jwtSecret,
+      { expiresIn: '7d' }
+    );
+
+    // Create session
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    await prisma.session.create({
+      data: {
+        token,
+        userId: matchedUser.id,
+        expiresAt,
+      },
+    });
+
     return NextResponse.json(
       {
-        success: false,
-        error: 'Voice recognition service not configured. Please set up Azure Speech, AWS Transcribe, or similar service.',
+        success: true,
+        message: 'Voice recognized successfully',
+        token,
+        expiresAt: expiresAt.getTime(),
+        user: {
+          id: matchedUser.id,
+          email: matchedUser.email,
+        },
       },
       {
-        status: 501,
         headers: {
           'X-RateLimit-Limit': '5',
           'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),

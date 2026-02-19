@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowRight, Mail, Github, Smartphone, Apple, User, Mic } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
+import { detectFace, base64ToImage } from "@/lib/face-recognition";
+import { extractVoiceFeatures } from "@/lib/voice-recognition";
 
 // Simple Google Icon Component
 const GoogleIcon = () => (
@@ -282,16 +284,29 @@ export default function LoginPage() {
       stream.getTracks().forEach(track => track.stop());
       setVideoStream(null);
 
-      // Convert canvas to base64 with compression
-      const imageBase64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
-
-      // Validate image size (max 5MB)
-      const imageSize = (imageBase64.length * 3) / 4;
-      if (imageSize > 5 * 1024 * 1024) {
-        throw new Error('Image is too large. Please try again.');
+      // Face Recognition - يرسل Face Descriptor إلى API
+      // 1. نحول الصورة إلى image element
+      const imageBase64 = canvas.toDataURL('image/jpeg', 0.85);
+      const imageElement = await base64ToImage(imageBase64.split(',')[1]);
+      
+      // 2. نكتشف الوجه باستخدام face-api.js
+      const faceDetection = await detectFace(imageElement);
+      
+      // 3. نتأكد أن في وجه موجود
+      if (!faceDetection || !faceDetection.detection) {
+        throw new Error('No face detected. Please try again and make sure your face is visible.');
       }
 
-      // Send to backend API for face recognition
+      // 4. نجيب Face Descriptor (هو بصمة الوجه)
+      const faceDescriptor = faceDetection.descriptor 
+        ? Array.from(faceDetection.descriptor) 
+        : null;
+
+      if (!faceDescriptor) {
+        throw new Error('Failed to extract face descriptor. Please try again.');
+      }
+
+      // 5. نرسل Face Descriptor إلى API للمقارنة مع Database
       const apiUrl = typeof window !== 'undefined' 
         ? `${window.location.origin}/api/auth/face`
         : '/api/auth/face';
@@ -301,7 +316,10 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ image: imageBase64 }),
+        body: JSON.stringify({ 
+          descriptor: faceDescriptor,
+          image: imageBase64.split(',')[1], // Optional: for server-side verification
+        }),
       });
 
       if (!response.ok) {
@@ -311,6 +329,37 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (!data.success) {
+        // إذا الوجه غير معروف، نحاول التسجيل
+        if (data.error && data.error.includes('not recognized')) {
+          // نرسل للـ register API
+          const registerUrl = typeof window !== 'undefined' 
+            ? `${window.location.origin}/api/auth/register`
+            : '/api/auth/register';
+          
+          const registerResponse = await fetch(registerUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              type: 'face',
+              descriptor: faceDescriptor,
+            }),
+          });
+
+          const registerData = await registerResponse.json();
+
+          if (registerData.success && registerData.token) {
+            localStorage.setItem('auth_token', registerData.token);
+            if (registerData.expiresAt) {
+              localStorage.setItem('auth_token_expires', registerData.expiresAt.toString());
+            }
+            setIsScanningFace(false);
+            router.push("/dashboard");
+            return;
+        }
+        }
+        
         throw new Error(data.error || 'Face recognition failed');
       }
 
@@ -365,38 +414,11 @@ export default function LoginPage() {
             setAudioStream(null);
             setIsRecording(false);
 
-            // Send transcript to backend for voice verification
-            const apiUrl = typeof window !== 'undefined' 
-              ? `${window.location.origin}/api/auth/voice`
-              : '/api/auth/voice';
-            
-            const response = await fetch(apiUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ transcript: transcript.trim() }),
-            });
-
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-
-            if (!data.success) {
-              throw new Error(data.error || 'Voice recognition failed');
-            }
-
-            // Store token securely
-            if (data.token) {
-              localStorage.setItem('auth_token', data.token);
-              if (data.expiresAt) {
-                localStorage.setItem('auth_token_expires', data.expiresAt.toString());
-              }
-            }
-
-            router.push("/dashboard");
+            // Note: Web Speech API doesn't give us raw audio
+            // For production, use MediaRecorder to get audio blob
+            // For now, we'll use a simplified approach
+            setError("Please use the microphone recording method for voice authentication. Speech-to-text is not sufficient for voice recognition.");
+            setIsLoading(false);
           } catch (error: any) {
             setError(error.message || 'Voice recognition failed. Please try again.');
             setIsLoading(false);
@@ -455,28 +477,41 @@ export default function LoginPage() {
               throw new Error('Audio file is too large. Please try again.');
             }
 
-            // Convert audio blob to base64
-            const reader = new FileReader();
-            reader.onloadend = async () => {
-              try {
-                const audioBase64 = (reader.result as string).split(',')[1];
+            // Validate minimum duration (at least 2 seconds)
+            const duration = audioBlob.size / (44100 * 2); // Approximate
+            if (duration < 2) {
+              throw new Error('Recording too short. Please speak for at least 2 seconds.');
+            }
 
-                // Send to backend API for voice recognition
-                const apiUrl = typeof window !== 'undefined' 
-                  ? `${window.location.origin}/api/auth/voice`
-                  : '/api/auth/voice';
-                
-                const response = await fetch(apiUrl, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({ audio: audioBase64 }),
-                });
+            // Extract voice features (voiceprint) from audio
+            const voiceFeatures = await extractVoiceFeatures(audioBlob);
 
-                if (!response.ok) {
-                  throw new Error(`HTTP error! status: ${response.status}`);
-                }
+            if (!voiceFeatures || voiceFeatures.length === 0) {
+              throw new Error('Failed to extract voice features. Please try again.');
+            }
+
+            // Send voice features to backend API for verification
+            const apiUrl = typeof window !== 'undefined' 
+              ? `${window.location.origin}/api/auth/voice`
+              : '/api/auth/voice';
+            
+            const response = await fetch(apiUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ 
+                features: voiceFeatures,
+                // Optional: also send audio for server-side processing
+                audio: await audioBlob.arrayBuffer().then(buf => 
+                  Array.from(new Uint8Array(buf))
+                ),
+              }),
+            });
+
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
 
                 const data = await response.json();
 
@@ -485,6 +520,36 @@ export default function LoginPage() {
                 setAudioStream(null);
 
                 if (!data.success) {
+                  // إذا الصوت غير معروف، نحاول التسجيل
+                  if (data.error && data.error.includes('not recognized')) {
+                    // نرسل للـ register API
+                    const registerUrl = typeof window !== 'undefined' 
+                      ? `${window.location.origin}/api/auth/register`
+                      : '/api/auth/register';
+                    
+                    const registerResponse = await fetch(registerUrl, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        type: 'voice',
+                        features: voiceFeatures,
+                      }),
+                    });
+
+                    const registerData = await registerResponse.json();
+
+                    if (registerData.success && registerData.token) {
+                      localStorage.setItem('auth_token', registerData.token);
+                      if (registerData.expiresAt) {
+                        localStorage.setItem('auth_token_expires', registerData.expiresAt.toString());
+                      }
+                      router.push("/dashboard");
+                      return;
+                    }
+                  }
+                  
                   throw new Error(data.error || 'Voice recognition failed');
                 }
 
@@ -497,20 +562,6 @@ export default function LoginPage() {
                 }
 
                 router.push("/dashboard");
-              } catch (error: any) {
-                setError(error.message || 'Voice recognition failed. Please try again.');
-                setIsLoading(false);
-                stream.getTracks().forEach(track => track.stop());
-                setAudioStream(null);
-              }
-            };
-            reader.onerror = () => {
-              setError('Failed to process audio. Please try again.');
-              setIsLoading(false);
-              stream.getTracks().forEach(track => track.stop());
-              setAudioStream(null);
-            };
-            reader.readAsDataURL(audioBlob);
           } catch (error: any) {
             setError(error.message || 'Voice recognition failed. Please try again.');
             setIsLoading(false);

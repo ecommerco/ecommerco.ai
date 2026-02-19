@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit, getClientIP } from '@/lib/rate-limit';
+import { prisma } from '@/lib/prisma';
+import jwt from 'jsonwebtoken';
 
 /**
  * OTP Authentication API Route
@@ -58,35 +60,60 @@ export async function POST(req: NextRequest) {
 
       // Generate 6-digit OTP
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-      // TODO: Store OTP in database with expiration (5 minutes)
-      // await prisma.otp.create({
-      //   data: {
-      //     email: email || null,
-      //     phone: phone || null,
-      //     code: otp,
-      //     expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-      //   },
-      // });
+      // Get or create user
+      let user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            email ? { email: email.trim().toLowerCase() } : {},
+            phone ? { phone: phone.trim() } : {},
+          ].filter(obj => Object.keys(obj).length > 0),
+        },
+      });
+
+      if (!user) {
+        user = await prisma.user.create({
+          data: {
+            email: email ? email.trim().toLowerCase() : null,
+            phone: phone ? phone.trim() : null,
+          },
+        });
+      }
+
+      // Store OTP in database
+      await prisma.otp.create({
+        data: {
+          email: email ? email.trim().toLowerCase() : null,
+          phone: phone ? phone.trim() : null,
+          code: otp,
+          expiresAt,
+          userId: user.id,
+        },
+      });
 
       // TODO: Send OTP via email or SMS
       // Email: Use SendGrid, AWS SES, Resend, etc.
       // SMS: Use Twilio, AWS SNS, etc.
       
       // Example with Resend (email):
-      // await resend.emails.send({
-      //   from: 'noreply@ecommerco.ai',
-      //   to: email,
-      //   subject: 'Your Verification Code',
-      //   html: `<p>Your verification code is: <strong>${otp}</strong></p>`,
-      // });
+      // if (email) {
+      //   await resend.emails.send({
+      //     from: 'noreply@ecommerco.ai',
+      //     to: email,
+      //     subject: 'Your Verification Code',
+      //     html: `<p>Your verification code is: <strong>${otp}</strong></p>`,
+      //   });
+      // }
 
       // Example with Twilio (SMS):
-      // await twilioClient.messages.create({
-      //   body: `Your verification code is: ${otp}`,
-      //   from: process.env.TWILIO_PHONE_NUMBER,
-      //   to: phone,
-      // });
+      // if (phone) {
+      //   await twilioClient.messages.create({
+      //     body: `Your verification code is: ${otp}`,
+      //     from: process.env.TWILIO_PHONE_NUMBER,
+      //     to: phone,
+      //   });
+      // }
 
       const response = NextResponse.json(
         {
@@ -120,59 +147,104 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // TODO: Verify OTP from database
-      // const otpRecord = await prisma.otp.findFirst({
-      //   where: {
-      //     email: email || undefined,
-      //     phone: phone || undefined,
-      //     code,
-      //     expiresAt: { gt: new Date() },
-      //     verified: false,
-      //   },
-      // });
-
-      // if (!otpRecord) {
-      //   return NextResponse.json(
-      //     { success: false, error: 'Invalid or expired OTP' },
-      //     { status: 400 }
-      //   );
-
-      //   // Mark as verified
-      //   await prisma.otp.update({
-      //     where: { id: otpRecord.id },
-      //     data: { verified: true },
-      //   });
-
-      //   // Get or create user
-      //   let user = await prisma.user.findFirst({
-      //     where: { email: email || undefined, phone: phone || undefined },
-      //   });
-
-      //   if (!user) {
-      //     user = await prisma.user.create({
-      //       data: { email, phone },
-      //     });
-      //   }
-
-      //   // Generate JWT token
-      //   const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
-      //     expiresIn: '7d',
-      //   });
-
-      //   return NextResponse.json({
-      //     success: true,
-      //     token,
-      //     user: { id: user.id, email: user.email },
-      //   });
-      // }
-
-      const response = NextResponse.json(
-        {
-          success: false,
-          error: 'OTP verification service not configured. Please set up database and email/SMS service.',
+      // Verify OTP from database
+      const otpRecord = await prisma.otp.findFirst({
+        where: {
+          OR: [
+            email ? { email: email.trim().toLowerCase() } : {},
+            phone ? { phone: phone.trim() } : {},
+          ].filter(obj => Object.keys(obj).length > 0),
+          code: code.trim(),
+          expiresAt: { gt: new Date() },
+          verified: false,
         },
-        { status: 501 }
+        orderBy: {
+          createdAt: 'desc', // Get most recent OTP
+        },
+      });
+
+      if (!otpRecord) {
+        const response = NextResponse.json(
+          {
+            success: false,
+            error: 'Invalid or expired OTP code. Please request a new code.',
+          },
+          { status: 400 }
+        );
+        
+        response.headers.set('X-RateLimit-Limit', maxRequests.toString());
+        response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+        response.headers.set('X-RateLimit-Reset', new Date(rateLimitResult.resetTime).toISOString());
+        
+        return response;
+      }
+
+      // Mark as verified
+      await prisma.otp.update({
+        where: { id: otpRecord.id },
+        data: { verified: true },
+      });
+
+      // Get user
+      const user = await prisma.user.findUnique({
+        where: { id: otpRecord.userId || '' },
+      });
+
+      if (!user) {
+        const response = NextResponse.json(
+          {
+            success: false,
+            error: 'User not found',
+          },
+          { status: 404 }
+        );
+        
+        response.headers.set('X-RateLimit-Limit', maxRequests.toString());
+        response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+        response.headers.set('X-RateLimit-Reset', new Date(rateLimitResult.resetTime).toISOString());
+        
+        return response;
+      }
+
+      // Generate JWT token
+      const jwtSecret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+      const token = jwt.sign(
+        {
+          userId: user.id,
+          email: user.email,
+          method: email ? 'email' : 'phone',
+        },
+        jwtSecret,
+        { expiresIn: '7d' }
       );
+
+      // Create session
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+      await prisma.session.create({
+        data: {
+          token,
+          userId: user.id,
+          expiresAt,
+        },
+      });
+
+      const response = NextResponse.json({
+        success: true,
+        token,
+        expiresAt: expiresAt.getTime(),
+        user: {
+          id: user.id,
+          email: user.email,
+          phone: user.phone,
+        },
+      });
+      
+      // Add rate limit headers
+      response.headers.set('X-RateLimit-Limit', maxRequests.toString());
+      response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+      response.headers.set('X-RateLimit-Reset', new Date(rateLimitResult.resetTime).toISOString());
+      
+      return response;
       
       // Add rate limit headers
       response.headers.set('X-RateLimit-Limit', maxRequests.toString());

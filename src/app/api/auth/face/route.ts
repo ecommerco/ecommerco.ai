@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit, getClientIP } from '@/lib/rate-limit';
+import { prisma } from '@/lib/prisma';
+import jwt from 'jsonwebtoken';
 
 /**
  * Face Recognition API Route
@@ -37,48 +39,104 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { image } = body;
+    const { descriptor, image } = body;
 
-    if (!image) {
+    if (!descriptor || !Array.isArray(descriptor)) {
       return NextResponse.json(
-        { success: false, error: 'Face image is required' },
+        { success: false, error: 'Face descriptor is required' },
         { status: 400 }
       );
     }
 
-    // TODO: Integrate with face recognition service
-    // Options:
-    // 1. Azure Face API: https://azure.microsoft.com/en-us/services/cognitive-services/face/
-    // 2. AWS Rekognition: https://aws.amazon.com/rekognition/
-    // 3. FaceIO: https://faceio.net/
-    // 4. Custom ML model (TensorFlow.js, MediaPipe)
-    
-    // Example with Azure Face API:
-    // const faceApiKey = process.env.AZURE_FACE_API_KEY;
-    // const faceApiEndpoint = process.env.AZURE_FACE_API_ENDPOINT;
-    // const response = await fetch(`${faceApiEndpoint}/detect?returnFaceId=true&returnFaceAttributes=age,gender`, {
-    //   method: 'POST',
-    //   headers: {
-    //     'Ocp-Apim-Subscription-Key': faceApiKey,
-    //     'Content-Type': 'application/octet-stream',
-    //   },
-    //   body: Buffer.from(image, 'base64'),
-    // });
-    // const faceData = await response.json();
-    
-    // Then verify against stored face IDs in database
-    // const user = await prisma.user.findFirst({
-    //   where: { faceId: faceData[0].faceId },
-    // });
+    // Convert descriptor to JSON string for comparison
+    const descriptorString = JSON.stringify(descriptor);
 
-    // For now, return structure for production integration
+    // Find user with matching face descriptor
+    // We'll compare descriptors using euclidean distance
+    const users = await prisma.user.findMany({
+      where: {
+        faceDescriptor: { not: null },
+      },
+    });
+
+    // Compare with stored descriptors
+    let matchedUser = null;
+    const threshold = 0.6; // Face matching threshold
+
+    for (const user of users) {
+      if (!user.faceDescriptor) continue;
+
+      try {
+        const storedDescriptor = JSON.parse(user.faceDescriptor);
+        
+        // Calculate euclidean distance
+        let distance = 0;
+        for (let i = 0; i < Math.min(descriptor.length, storedDescriptor.length); i++) {
+          distance += Math.pow(descriptor[i] - storedDescriptor[i], 2);
+        }
+        distance = Math.sqrt(distance);
+
+        if (distance < threshold) {
+          matchedUser = user;
+          break;
+        }
+      } catch (error) {
+        // Skip invalid descriptors
+        continue;
+      }
+    }
+
+    if (!matchedUser) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Face not recognized. Please register your face first or use another authentication method.',
+        },
+        {
+          status: 401,
+          headers: {
+            'X-RateLimit-Limit': '5',
+            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+          },
+        }
+      );
+    }
+
+    // Generate JWT token
+    const jwtSecret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+    const token = jwt.sign(
+      {
+        userId: matchedUser.id,
+        email: matchedUser.email,
+        method: 'face',
+      },
+      jwtSecret,
+      { expiresIn: '7d' }
+    );
+
+    // Create session
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    await prisma.session.create({
+      data: {
+        token,
+        userId: matchedUser.id,
+        expiresAt,
+      },
+    });
+
     return NextResponse.json(
       {
-        success: false,
-        error: 'Face recognition service not configured. Please set up Azure Face API, AWS Rekognition, or FaceIO.',
+        success: true,
+        message: 'Face recognized successfully',
+        token,
+        expiresAt: expiresAt.getTime(),
+        user: {
+          id: matchedUser.id,
+          email: matchedUser.email,
+        },
       },
       {
-        status: 501,
         headers: {
           'X-RateLimit-Limit': '5',
           'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
