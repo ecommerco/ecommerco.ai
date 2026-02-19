@@ -7,12 +7,33 @@ import {
   Globe2, 
   Zap, 
   ShieldCheck, 
-  Layers 
+  Layers,
+  Monitor,
+  Smartphone,
+  Download
 } from "lucide-react";
 import { ReactNode } from "react";
 import { GlowingCard } from "./GlowingCard";
 
 const features = [
+  {
+    title: "Web Builder",
+    description: "Build stunning websites with our drag-and-drop visual editor. No coding required. Create responsive, SEO-optimized sites in minutes.",
+    icon: <Monitor className="w-6 h-6" />,
+    colSpan: "md:col-span-1",
+  },
+  {
+    title: "App Builder",
+    description: "Create native iOS and Android apps for your store without writing a single line of code. Publish to App Store and Google Play instantly.",
+    icon: <Smartphone className="w-6 h-6" />,
+    colSpan: "md:col-span-1",
+  },
+  {
+    title: "PWA Builder",
+    description: "Transform your store into a Progressive Web App. Install on any device, work offline, and deliver app-like experience without app stores.",
+    icon: <Download className="w-6 h-6" />,
+    colSpan: "md:col-span-1",
+  },
   {
     title: "Generative Store Architect",
     description: "Don't build. Describe. Our AI constructs pixel-perfect, conversion-optimized storefronts in seconds, not months.",
@@ -107,8 +128,8 @@ export function Features() {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {features.map((feature, i) => (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          {features.slice(0, 3).map((feature, i) => (
             <FeatureCard
               key={i}
               title={feature.title}
@@ -116,6 +137,41 @@ export function Features() {
               icon={feature.icon}
               className={feature.colSpan}
               delay={i * 0.1}
+            />
+          ))}
+        </div>
+
+        {/* AI Assistant Banner */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="w-full rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 backdrop-blur-xl p-8 md:p-12 text-center mb-12"
+        >
+          <div className="max-w-4xl mx-auto">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/20 border-2 border-primary/30 mb-6">
+              <Bot className="w-8 h-8 text-primary" />
+            </div>
+            <h3 className="text-2xl md:text-4xl font-bold text-white mb-4">
+              Your Intelligent Assistant for All Your Business Needs
+            </h3>
+            <p className="text-lg text-gray-300 max-w-2xl mx-auto">
+              From website creation to app development and PWA conversion, our AI-powered platform handles everything. 
+              Build, manage, and scale your business with intelligent automation.
+            </p>
+          </div>
+        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {features.slice(3).map((feature, i) => (
+            <FeatureCard
+              key={i + 3}
+              title={feature.title}
+              description={feature.description}
+              icon={feature.icon}
+              className={feature.colSpan}
+              delay={(i + 3) * 0.1}
             />
           ))}
         </div>

@@ -5,7 +5,7 @@ export const locales: Locale[] = ['en', 'ar', 'fr', 'es', 'de', 'it', 'pt', 'ja'
 export const defaultLocale: Locale = 'en';
 
 export const localeNames: Record<Locale, string> = {
-  en: 'English',
+  en: 'EN',
   ar: 'العربية',
   fr: 'Français',
   es: 'Español',

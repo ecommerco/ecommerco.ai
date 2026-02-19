@@ -21,7 +21,7 @@ export const GlowingCard = ({
 
   return (
     <div
-      className={`group relative border border-white/10 bg-black overflow-hidden rounded-xl ${className}`}
+      className={`group relative border border-white/20 bg-black/80 backdrop-blur-sm overflow-hidden rounded-xl ${className}`}
       onMouseMove={handleMouseMove}
     >
       <motion.div

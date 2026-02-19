@@ -41,9 +41,6 @@ export function Navbar() {
 
         <div className="hidden md:flex items-center gap-4">
           <LanguageSwitcher />
-          <Link href="/login" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">
-            Log in
-          </Link>
           <Link 
             href="/signup" 
             className="px-4 py-2 text-sm font-medium text-black bg-primary rounded-full hover:bg-yellow-400 transition-colors"
@@ -88,9 +85,6 @@ export function Navbar() {
                 <div className="px-4">
                   <LanguageSwitcher />
                 </div>
-                <Link href="/login" className="text-center py-3 text-white border border-white/10 rounded-lg hover:bg-white/5 transition-colors" onClick={() => setIsOpen(false)}>
-                  Log in
-                </Link>
                 <Link 
                   href="/signup" 
                   className="text-center py-3 text-black bg-primary rounded-lg hover:bg-yellow-400 transition-colors font-bold"

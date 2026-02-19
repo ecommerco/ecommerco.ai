@@ -759,13 +759,14 @@ export default function LoginPage() {
           loop
           muted
           playsInline
-          className="w-full h-full object-cover opacity-40"
+          className="w-full h-full object-cover"
+          style={{ opacity: 0.6 }}
         >
           <source src="/hero-background.mp4" type="video/mp4" />
           <source src="/Video.mp4" type="video/mp4" />
         </video>
         {/* Dark overlay for better contrast */}
-        <div className="absolute inset-0 bg-black/70" />
+        <div className="absolute inset-0 bg-black/40" />
       </div>
 
       <Navbar />
@@ -940,12 +941,12 @@ export default function LoginPage() {
                       <div className="absolute inset-0 flex items-center justify-center">
                         <div className="text-center space-y-4">
                           {/* AI Icon with Glow */}
-                          <div className="relative mx-auto">
-                            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary/30 via-primary/20 to-primary/10 border-4 border-primary/40 flex items-center justify-center shadow-2xl shadow-primary/30">
+                          <div className="relative mx-auto w-32 h-32">
+                            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary/30 via-primary/20 to-primary/10 border-4 border-primary/40 flex items-center justify-center shadow-2xl shadow-primary/30 relative z-10">
                               <User className="w-16 h-16 text-primary" />
                             </div>
-                            {/* Pulsing Glow */}
-                            <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
+                            {/* Pulsing Glow - Centered */}
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full bg-primary/20 animate-ping" />
                           </div>
                           
                           {/* Instructions */}

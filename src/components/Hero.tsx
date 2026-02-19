@@ -2,19 +2,26 @@
 
 import { motion, useMotionTemplate, useMotionValue } from "framer-motion";
 import { ArrowRight, Cpu, Network, Zap } from "lucide-react";
-import { MouseEvent } from "react";
+import { MouseEvent, useRef, useEffect } from "react";
 import { ParticleBackground } from "./ParticleBackground";
 import { ScrambleText } from "./ScrambleText";
 
 export function Hero() {
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   function handleMouseMove({ currentTarget, clientX, clientY }: MouseEvent) {
     const { left, top } = currentTarget.getBoundingClientRect();
     mouseX.set(clientX - left);
     mouseY.set(clientY - top);
   }
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = 0.6;
+    }
+  }, []);
 
   return (
     <section 
@@ -24,6 +31,7 @@ export function Hero() {
       {/* Background Layer */}
       <div className="absolute inset-0 z-0 bg-black">
         <video
+          ref={videoRef}
           autoPlay
           loop
           muted

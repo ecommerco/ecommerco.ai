@@ -46,13 +46,14 @@ export default function SignupPage() {
           loop
           muted
           playsInline
-          className="w-full h-full object-cover opacity-40"
+          className="w-full h-full object-cover"
+          style={{ opacity: 0.6 }}
         >
           <source src="/hero-background.mp4" type="video/mp4" />
           <source src="/Video.mp4" type="video/mp4" />
         </video>
         {/* Dark overlay for better contrast */}
-        <div className="absolute inset-0 bg-black/70" />
+        <div className="absolute inset-0 bg-black/40" />
       </div>
 
       <Navbar />

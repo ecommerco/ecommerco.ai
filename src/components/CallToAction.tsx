@@ -42,7 +42,7 @@ export function CallToAction() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-left border-t border-white/10 pt-16">
           <div>
             <h4 className="font-bold text-white mb-4">Product</h4>
-            <ul className="space-y-2 text-sm text-gray-500">
+            <ul className="space-y-2 text-sm text-white">
               <li><Link href="/builder" className="hover:text-primary transition-colors">Store Builder</Link></li>
               <li><Link href="/features" className="hover:text-primary transition-colors">Features</Link></li>
               <li><Link href="/pricing" className="hover:text-primary transition-colors">Pricing</Link></li>
@@ -52,7 +52,7 @@ export function CallToAction() {
           </div>
           <div>
             <h4 className="font-bold text-white mb-4">Company</h4>
-            <ul className="space-y-2 text-sm text-gray-500">
+            <ul className="space-y-2 text-sm text-white">
               <li><Link href="/about" className="hover:text-primary transition-colors">About</Link></li>
               <li><Link href="/careers" className="hover:text-primary transition-colors">Careers</Link></li>
               <li><Link href="/blog" className="hover:text-primary transition-colors">Blog</Link></li>
@@ -62,7 +62,7 @@ export function CallToAction() {
           </div>
           <div>
             <h4 className="font-bold text-white mb-4">Resources</h4>
-            <ul className="space-y-2 text-sm text-gray-500">
+            <ul className="space-y-2 text-sm text-white">
               <li><Link href="/developers" className="hover:text-primary transition-colors">Developers</Link></li>
               <li><Link href="/community" className="hover:text-primary transition-colors">Community</Link></li>
               <li><Link href="/help" className="hover:text-primary transition-colors">Help Center</Link></li>
@@ -72,7 +72,7 @@ export function CallToAction() {
           </div>
           <div>
             <h4 className="font-bold text-white mb-4">Legal</h4>
-            <ul className="space-y-2 text-sm text-gray-500">
+            <ul className="space-y-2 text-sm text-white">
               <li><Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
               <li><Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link></li>
               <li><Link href="/live" className="hover:text-primary transition-colors">Live Progress</Link></li>
@@ -80,7 +80,7 @@ export function CallToAction() {
           </div>
         </div>
         
-        <div className="mt-16 text-center text-xs text-gray-600">
+        <div className="mt-8 pb-4 text-center text-xs text-gray-600">
           © 2026 Ecommerco.ai Inc. All rights reserved.
         </div>
       </div>

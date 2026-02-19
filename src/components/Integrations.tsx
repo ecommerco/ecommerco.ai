@@ -73,7 +73,7 @@ export function Integrations() {
             className="flex gap-4 items-center"
             animate={{ x: ["0%", "-50%"] }}
             transition={{ 
-              duration: 40, 
+              duration: 60, 
               ease: "linear", 
               repeat: Infinity 
             }}
@@ -98,7 +98,7 @@ export function Integrations() {
             className="flex gap-4 items-center"
             animate={{ x: ["-50%", "0%"] }}
             transition={{ 
-              duration: 45, 
+              duration: 70, 
               ease: "linear", 
               repeat: Infinity 
             }}

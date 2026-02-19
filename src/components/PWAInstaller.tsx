@@ -11,8 +11,13 @@ export function PWAInstaller() {
 
   useEffect(() => {
     // Check if app is already installed
-    if (window.matchMedia("(display-mode: standalone)").matches) {
+    if (typeof window !== 'undefined' && window.matchMedia("(display-mode: standalone)").matches) {
       setIsInstalled(true);
+      return;
+    }
+
+    // Check if dismissed in this session
+    if (typeof window !== 'undefined' && sessionStorage.getItem("pwa-install-dismissed")) {
       return;
     }
 
@@ -23,17 +28,21 @@ export function PWAInstaller() {
       setShowInstallPrompt(true);
     };
 
-    window.addEventListener("beforeinstallprompt", handler);
+    if (typeof window !== 'undefined') {
+      window.addEventListener("beforeinstallprompt", handler);
 
-    // Check if app was just installed
-    window.addEventListener("appinstalled", () => {
-      setIsInstalled(true);
-      setShowInstallPrompt(false);
-      setDeferredPrompt(null);
-    });
+      // Check if app was just installed
+      window.addEventListener("appinstalled", () => {
+        setIsInstalled(true);
+        setShowInstallPrompt(false);
+        setDeferredPrompt(null);
+      });
+    }
 
     return () => {
-      window.removeEventListener("beforeinstallprompt", handler);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener("beforeinstallprompt", handler);
+      }
     };
   }, []);
 
@@ -62,11 +71,13 @@ export function PWAInstaller() {
   const handleDismiss = () => {
     setShowInstallPrompt(false);
     // Don't show again for this session
-    sessionStorage.setItem("pwa-install-dismissed", "true");
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem("pwa-install-dismissed", "true");
+    }
   };
 
   // Don't show if already installed or dismissed
-  if (isInstalled || !showInstallPrompt || sessionStorage.getItem("pwa-install-dismissed")) {
+  if (isInstalled || !showInstallPrompt) {
     return null;
   }
 
